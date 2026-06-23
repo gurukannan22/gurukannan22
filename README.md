@@ -27,6 +27,8 @@
 
 <br/>
 
+Modern backend systems, product dashboards, and teaching content with less noise and better spacing.
+
 <a href="#live-dashboard">Live Dashboard</a> ·
 <a href="#what-i-build">What I Build</a> ·
 <a href="#tech-os">Tech OS</a> ·
@@ -45,20 +47,17 @@
 
 </div>
 
-<table>
+<table cellspacing="0" cellpadding="0">
 <tr>
-<td width="50%" valign="top">
+<td width="48%" valign="top">
 
 <img src="./assets/langs.svg" width="100%" alt="Language matrix" />
 
 </td>
-<td width="50%" valign="top">
+<td width="4%">&nbsp;</td>
+<td width="48%" valign="top">
 
 <img src="https://streak-stats.demolab.com/?user=gurukannan22&theme=github-dark-blue&hide_border=true&background=0D1117&ring=58A6FF&fire=F0B429&currStreakLabel=58A6FF&sideLabels=7D8590&dates=7D8590&stroke=21262D&type=svg" width="100%" alt="GitHub streak stats" />
-
-<br/>
-
-<img src="https://github-profile-trophy.vercel.app/?username=gurukannan22&theme=algolia&no-frame=true&no-bg=true&margin-w=8&margin-h=6&column=3&rank=SECRET,SSS,SS,S,AAA,AA,A,B" width="100%" alt="GitHub profile trophies" />
 
 </td>
 </tr>

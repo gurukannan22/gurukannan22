@@ -20,8 +20,6 @@
 <g clip-path="url(#lgClip)"><rect x="0" y="0" width="440" height="5" fill="#BC8CFF" opacity=".07"><animateTransform attributeName="transform" type="translate" from="0 -5" to="0 345" dur="4s" repeatCount="indefinite" calcMode="linear"/></rect></g>
 <rect x="1" y="1" width="438" height="338" rx="14" fill="none" stroke="#BC8CFF" stroke-width="1.2"><animate attributeName="stroke-opacity" values=".3;.95;.3" dur="2.8s" repeatCount="indefinite"/></rect>
 <path d="M 30 10 L 10 10 L 10 30" stroke="#BC8CFF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 410 10 L 430 10 L 430 30" stroke="#BC8CFF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 10 310 L 10 330 L 30 330" stroke="#BC8CFF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 410 330 L 430 330 L 430 310" stroke="#BC8CFF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/>
-<rect x="0" y="0" width="440" height="3.5" fill="url(#topLg)"/>
-
 <text x="32" y="40" font-family="'Courier New',monospace" font-size="9.5" font-weight="700"
   letter-spacing=".14em" fill="#7D8590">// LANGUAGE MATRIX</text>
 <line x1="32" y1="50" x2="408" y2="50" stroke="#21262D" stroke-width="1"/>

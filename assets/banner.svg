@@ -39,9 +39,6 @@
 <!-- Corner brackets -->
 <path d="M 30 10 L 10 10 L 10 30" stroke="#F0B429" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 870 10 L 890 10 L 890 30" stroke="#F0B429" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 10 170 L 10 190 L 30 190" stroke="#F0B429" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 870 190 L 890 190 L 890 170" stroke="#F0B429" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".85"/>
 
-<!-- Top gradient bar -->
-<rect x="0" y="0" width="900" height="3.5" fill="url(#topG)"/>
-
 <!-- Name -->
 <text x="450" y="98" text-anchor="middle"
   font-family="'Segoe UI',Ubuntu,'Helvetica Neue',sans-serif"

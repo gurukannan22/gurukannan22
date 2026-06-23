@@ -238,9 +238,6 @@ def build_banner_svg() -> str:
 <!-- Corner brackets -->
 {_corner_brackets(W, H, size=20, gap=10, color=P["amber"], t=2.2)}
 
-<!-- Top gradient bar -->
-<rect x="0" y="0" width="{W}" height="3.5" fill="url(#topG)"/>
-
 <!-- Name -->
 <text x="{W//2}" y="98" text-anchor="middle"
   font-family="'Segoe UI',Ubuntu,'Helvetica Neue',sans-serif"
@@ -375,7 +372,6 @@ def build_stats_svg(d: dict) -> str:
 <g clip-path="url(#stClip)">{_scanline(W, H, P["blue"])}</g>
 {_animated_border(W, H, P["blue"])}
 {_corner_brackets(W, H, size=20, gap=10, color=P["blue"], t=2.3)}
-<rect x="0" y="0" width="{W}" height="3.5" fill="url(#topSt)"/>
 
 <!-- terminal prompt -->
 <text x="32" y="48" font-family="'Courier New',monospace" font-size="13" font-weight="600">
@@ -532,7 +528,6 @@ def build_langs_svg(d: dict) -> str:
 <g clip-path="url(#lgClip)">{_scanline(W, H, P["purple"])}</g>
 {_animated_border(W, H, P["purple"])}
 {_corner_brackets(W, H, size=20, gap=10, color=P["purple"], t=2.3)}
-<rect x="0" y="0" width="{W}" height="3.5" fill="url(#topLg)"/>
 
 <text x="32" y="40" font-family="'Courier New',monospace" font-size="9.5" font-weight="700"
   letter-spacing=".14em" fill="{P["dim"]}">// LANGUAGE MATRIX</text>
