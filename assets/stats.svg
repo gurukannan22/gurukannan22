@@ -26,6 +26,7 @@
 <g clip-path="url(#stClip)"><rect x="0" y="0" width="900" height="5" fill="#58A6FF" opacity=".07"><animateTransform attributeName="transform" type="translate" from="0 -5" to="0 345" dur="4s" repeatCount="indefinite" calcMode="linear"/></rect></g>
 <rect x="1" y="1" width="898" height="338" rx="14" fill="none" stroke="#58A6FF" stroke-width="1.2"><animate attributeName="stroke-opacity" values=".3;.95;.3" dur="2.8s" repeatCount="indefinite"/></rect>
 <path d="M 30 10 L 10 10 L 10 30" stroke="#58A6FF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 870 10 L 890 10 L 890 30" stroke="#58A6FF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 10 310 L 10 330 L 30 330" stroke="#58A6FF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/><path d="M 870 330 L 890 330 L 890 310" stroke="#58A6FF" stroke-width="2.3" fill="none" stroke-linecap="round" opacity=".85"/>
+
 <!-- terminal prompt -->
 <text x="32" y="48" font-family="'Courier New',monospace" font-size="13" font-weight="600">
   <tspan fill="#3FB950">guru</tspan><tspan fill="#7D8590">@github:</tspan>
@@ -57,7 +58,7 @@
   <text x="43" y="93" font-family="'Courier New',monospace" font-size="9" font-weight="700"
     letter-spacing=".13em" fill="#7D8590">COMMITS</text>
   <text x="43" y="129" font-family="'Segoe UI',Ubuntu,sans-serif" font-size="30" font-weight="800"
-    fill="#58A6FF">448
+    fill="#58A6FF">449
     <animate attributeName="opacity" values="0;1" dur=".35s" begin="0.00s" fill="freeze"/>
   </text>
   <text x="43" y="142" font-family="'Courier New',monospace" font-size="9" fill="#7D8590">all time</text>
@@ -170,11 +171,11 @@
   fill="#3FB9500F" stroke="#3FB950" stroke-width=".7"/>
 <text x="762" y="280" text-anchor="middle"
   font-family="'Segoe UI',sans-serif" font-size="13" font-weight="800" fill="#3FB950">
-  460 contributions this year
+  461 contributions this year
 </text>
 
 <line x1="32" y1="304" x2="868" y2="304" stroke="#21262D" stroke-width="1"/>
-<text x="32"      y="324" font-family="'Courier New',monospace" font-size="9" fill="#7D8590">⟳ AUTO-UPDATED · 2026-06-23  17:04 UTC</text>
+<text x="32"      y="324" font-family="'Courier New',monospace" font-size="9" fill="#7D8590">⟳ AUTO-UPDATED · 2026-06-23  17:13 UTC</text>
 <text x="868"  y="324" font-family="'Courier New',monospace" font-size="9" fill="#7D8590" text-anchor="end">github.com/gurukannan22</text>
 
 </svg>
