@@ -1,6 +1,6 @@
 <!--
   Guru Kannan - GitHub Profile
-  Live cards are refreshed by GitHub Actions.
+  Live cards are refreshed by GitHub Actions every 30 minutes.
 -->
 
 <div align="center">
@@ -23,8 +23,9 @@
 <a href="mailto:gurukannan0922@gmail.com">
   <img src="https://img.shields.io/badge/Open%20To-Collabs%20%7C%20Mentoring%20%7C%20Backend%20Work-0D1117?style=for-the-badge&labelColor=BC8CFF" alt="Open to collaborations" />
 </a>
+<img src="https://img.shields.io/badge/Data%20Refresh-Every%2030%20Minutes-0D1117?style=for-the-badge&labelColor=1F6FEB" alt="Profile data refresh cadence" />
 
-<br/><br/>
+<br/>
 
 <a href="#live-dashboard">Live Dashboard</a> ·
 <a href="#what-i-build">What I Build</a> ·
@@ -42,13 +43,26 @@
 
 <img src="./assets/stats.svg" width="100%" alt="Live GitHub statistics dashboard" />
 
-<br/><br/>
-
-<img src="./assets/langs.svg" width="48%" alt="Language matrix" />
-&nbsp;
-<img src="https://streak-stats.demolab.com/?user=gurukannan22&theme=github-dark-blue&hide_border=true&background=0D1117&ring=58A6FF&fire=F0B429&currStreakLabel=58A6FF&sideLabels=7D8590&dates=7D8590&stroke=21262D&type=svg" width="48%" alt="GitHub streak stats" />
-
 </div>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+<img src="./assets/langs.svg" width="100%" alt="Language matrix" />
+
+</td>
+<td width="50%" valign="top">
+
+<img src="https://streak-stats.demolab.com/?user=gurukannan22&theme=github-dark-blue&hide_border=true&background=0D1117&ring=58A6FF&fire=F0B429&currStreakLabel=58A6FF&sideLabels=7D8590&dates=7D8590&stroke=21262D&type=svg" width="100%" alt="GitHub streak stats" />
+
+<br/>
+
+<img src="https://github-profile-trophy.vercel.app/?username=gurukannan22&theme=algolia&no-frame=true&no-bg=true&margin-w=8&margin-h=6&column=3&rank=SECRET,SSS,SS,S,AAA,AA,A,B" width="100%" alt="GitHub profile trophies" />
+
+</td>
+</tr>
+</table>
 
 <div align="center">
 
@@ -281,4 +295,3 @@ Motto:
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,15,20,24&height=110&section=footer&text=terminal%20open.%20still%20shipping.&fontSize=15&fontColor=58A6FF&fontAlignY=62&animation=fadeIn" width="100%" alt="Footer wave" />
 
 </div>
-
