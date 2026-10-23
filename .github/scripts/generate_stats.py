@@ -1,566 +1,617 @@
 #!/usr/bin/env python3
 """
-generate_stats.py  —  Ultra-Modern GitHub Profile SVG Generator
-════════════════════════════════════════════════════════════════
-Generates three custom animated SVG assets:
-  • assets/banner.svg   — Particle-field animated name banner
-  • assets/stats.svg    — Cyberpunk terminal stats dashboard
-  • assets/langs.svg    — Animated donut + bar language chart
+generate_stats.py  —  GitHub profile SVG generator
+═══════════════════════════════════════════════════
+Renders four self-hosted, auto-updating SVG cards:
+  • assets/banner.svg  — hero banner with a live status chip + terminal
+  • assets/stats.svg   — 12-month contribution activity + full heatmap
+  • assets/langs.svg   — language breakdown across owned repos
+  • assets/recent.svg  — most recently pushed repositories
 
-GitHub Actions runs this every 6 hours and commits the results.
+GitHub Actions runs this every 30 minutes and commits the results.
+No third-party dependencies: only the standard library.
+
+(There are a few things in here that are not strictly "stats".
+ If you're reading this, you're already on the hunt. 🥚)
 """
 
-import os, sys, math, random, requests
-from datetime import datetime, timezone
+import json, math, os, random, sys, urllib.request
+from datetime import date, datetime, timedelta, timezone
+from html import escape
 
 USERNAME = os.environ.get("GITHUB_USERNAME", "gurukannan22")
 TOKEN    = os.environ.get("GITHUB_TOKEN", "")
 OUT_DIR  = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
+IST      = timezone(timedelta(hours=5, minutes=30))
 
-# ── Palette ──────────────────────────────────────────────────────────────────
+# ── Design tokens ────────────────────────────────────────────────────────────
 P = {
-    "bg":     "#010409", "bg2": "#0D1117", "bg3":    "#161B22",
-    "border": "#21262D", "blue": "#58A6FF", "blue2":  "#1F6FEB",
-    "amber":  "#F0B429", "green": "#3FB950", "purple": "#BC8CFF",
-    "pink":   "#FF7B72", "teal":  "#39C5BB", "text":   "#E6EDF3",
-    "dim":    "#7D8590", "white": "#F0F6FC",
+    "bg":     "#0A0D12", "panel":  "#0D1117", "raise": "#161B22",
+    "border": "#21262D", "line":   "#30363D",
+    "text":   "#E6EDF3", "soft":   "#C9D1D9", "muted": "#8B949E", "faint": "#484F58",
+    "blue":   "#58A6FF", "indigo": "#8FB4FF", "green": "#3FB950", "amber": "#F0B429",
+    "pink":   "#FF7B72",
 }
+HEAT = ["#161B22", "#0E4429", "#006D32", "#26A641", "#39D353"]
+SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif"
+MONO = "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace"
+
+FORTUNES = [
+    "It works on my machine. Shipping the machine.",
+    "There are 10 kinds of people: those who read binary and those who don't.",
+    "A semicolon walks into a bar; the bar compiles.",
+    "Weeks of coding can save you hours of planning.",
+    "git push --force is a personality, not a strategy.",
+    "The best code is no code. The second best is tested code.",
+    "99 little bugs in the code. Patch one. 127 little bugs in the code.",
+    "Cache invalidation, naming things, and off-by-one errors.",
+    "Kafka never forgets. Neither does git blame.",
+    "Today's bug is tomorrow's interview story.",
+    "Premature optimization is the root of all evil. Mature optimization is just fun.",
+    "Any sufficiently advanced bug is indistinguishable from a feature.",
+    "Talk is cheap. Show me the code. — Linus Torvalds",
+    "First, solve the problem. Then, write the code. — John Johnson",
+    "Strong fundamentals scale better than shortcuts.",
+    "NullPointerException: motivation not found. Retrying with coffee...",
+    "Deleted code is debugged code.",
+    "Read the error message. No, the whole error message.",
+    "Commit early, commit often, commit with good messages.",
+    "Every senior engineer is a junior who didn't quit.",
+    "sudo make me a sandwich. Okay.",
+]
 
 QUERY = """query($login:String!){user(login:$login){
-  name followers{totalCount}
+  followers{totalCount}
   repositories(first:100 ownerAffiliations:OWNER isFork:false
     orderBy:{field:STARGAZERS direction:DESC}){
     totalCount
-    nodes{stargazerCount forkCount
+    nodes{stargazerCount
       languages(first:10 orderBy:{field:SIZE direction:DESC}){
         edges{size node{name color}}}}}
+  recent: repositories(first:6 ownerAffiliations:OWNER isFork:false privacy:PUBLIC
+    orderBy:{field:PUSHED_AT direction:DESC}){
+    nodes{name description pushedAt stargazerCount primaryLanguage{name color}}}
   contributionsCollection{
-    totalCommitContributions restrictedContributionsCount
+    totalCommitContributions totalPullRequestContributions
+    totalPullRequestReviewContributions restrictedContributionsCount
     contributionCalendar{totalContributions
-      weeks{contributionDays{contributionCount date}}}}
-  pullRequests(states:MERGED){totalCount}
-  issues(states:OPEN){totalCount}}}"""
+      weeks{contributionDays{contributionCount date weekday}}}}}}"""
 
-# ─────────────────────────────────────────────────────────────────────────────
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Data
+# ═════════════════════════════════════════════════════════════════════════════
 def fetch_data() -> dict:
     if not TOKEN:
-        print("⚠  No GITHUB_TOKEN — using placeholder.", file=sys.stderr)
+        print("⚠  No GITHUB_TOKEN — rendering with placeholder data.", file=sys.stderr)
         return _placeholder()
-    r = requests.post(
+    req = urllib.request.Request(
         "https://api.github.com/graphql",
-        json={"query": QUERY, "variables": {"login": USERNAME}},
-        headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
-        timeout=20,
+        data=json.dumps({"query": QUERY, "variables": {"login": USERNAME}}).encode(),
+        headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json",
+                 "User-Agent": f"{USERNAME}-profile-generator"},
     )
-    r.raise_for_status()
-    p = r.json()
-    if "errors" in p:
-        print(f"GraphQL error: {p['errors']}", file=sys.stderr)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        payload = json.load(r)
+    if "errors" in payload:
+        print(f"GraphQL error: {payload['errors']}", file=sys.stderr)
         return _placeholder()
-    return _parse(p["data"]["user"])
+    return _parse(payload["data"]["user"])
+
 
 def _parse(u):
-    repos   = u["repositories"]["nodes"]
-    cc      = u["contributionsCollection"]
-    cal     = cc["contributionCalendar"]
-    commits = cc["totalCommitContributions"] + cc["restrictedContributionsCount"]
-    stars   = sum(r["stargazerCount"] for r in repos)
-    cur, lng = _streaks(cal["weeks"])
+    cc   = u["contributionsCollection"]
+    days = _days(cc["contributionCalendar"]["weeks"])
+    repos = u["repositories"]["nodes"]
     return {
-        "commits": commits, "stars": stars,
-        "forks":   sum(r["forkCount"] for r in repos),
-        "prs":     u["pullRequests"]["totalCount"],
-        "issues":  u["issues"]["totalCount"],
-        "repos":   u["repositories"]["totalCount"],
+        "total":     cc["contributionCalendar"]["totalContributions"],
+        "commits":   cc["totalCommitContributions"] + cc["restrictedContributionsCount"],
+        "prs":       cc["totalPullRequestContributions"],
+        "reviews":   cc["totalPullRequestReviewContributions"],
+        "repos":     u["repositories"]["totalCount"],
+        "stars":     sum(r["stargazerCount"] for r in repos),
         "followers": u["followers"]["totalCount"],
-        "total_c": cal["totalContributions"],
-        "cur_streak": cur, "lng_streak": lng,
-        "langs": _languages(repos),
-        "weeks": cal["weeks"],
+        "langs":     _languages(repos),
+        "recent":    [r for r in u["recent"]["nodes"] if r["name"].lower() != USERNAME.lower()][:4],
+        "weeks":     cc["contributionCalendar"]["weeks"],
+        **_activity(days),
     }
 
-def _streaks(weeks):
-    days = sorted([d for w in weeks for d in w["contributionDays"]], key=lambda x: x["date"])
-    cur = lng = tmp = 0
-    for d in reversed(days):
-        if d["contributionCount"] > 0:
-            tmp += 1; lng = max(lng, tmp)
-        else:
-            if cur == 0: cur = tmp
-            tmp = 0
-    if cur == 0: cur = tmp
-    return cur, max(lng, cur)
+
+def _days(weeks):
+    return sorted((d for w in weeks for d in w["contributionDays"]), key=lambda d: d["date"])
+
+
+def _activity(days):
+    """Streaks, active days, busiest day/weekday from the contribution calendar."""
+    counts = [d["contributionCount"] for d in days]
+    # An empty "today" shouldn't break the current streak — the day isn't over.
+    tail = counts[:-1] if counts and counts[-1] == 0 else counts
+    cur = 0
+    for c in reversed(tail):
+        if c == 0:
+            break
+        cur += 1
+    lng = run = 0
+    for c in counts:
+        run = run + 1 if c else 0
+        lng = max(lng, run)
+
+    by_wd = [0] * 7
+    for d in days:
+        by_wd[d.get("weekday", datetime.fromisoformat(d["date"]).isoweekday() % 7)] += d["contributionCount"]
+    best = max(days, key=lambda d: d["contributionCount"]) if days else {"date": "", "contributionCount": 0}
+    return {
+        "cur_streak": cur, "lng_streak": lng,
+        "active":     sum(1 for c in counts if c),
+        "n_days":     len(counts),
+        "best_day":   best["contributionCount"], "best_date": best["date"],
+        "top_wd":     ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][by_wd.index(max(by_wd))],
+        "last7":      sum(counts[-7:]),
+    }
+
 
 def _languages(repos):
     acc = {}
     for repo in repos:
-        for e in repo.get("languages", {}).get("edges", []):
-            n = e["node"]["name"]; c = e["node"]["color"] or "#858585"; s = e["size"]
-            acc[n] = {"size": acc.get(n, {"size": 0})["size"] + s, "color": c}
+        for e in (repo.get("languages") or {}).get("edges", []):
+            n, s = e["node"]["name"], e["size"]
+            acc.setdefault(n, {"size": 0, "color": e["node"]["color"] or "#8B949E"})["size"] += s
     total = sum(v["size"] for v in acc.values()) or 1
-    return sorted([
-        {"name": k, "color": v["color"], "size": v["size"],
-         "percent": round(v["size"] / total * 100, 1)}
-        for k, v in acc.items()
-    ], key=lambda x: x["size"], reverse=True)[:9]
+    return sorted(
+        ({"name": k, "color": v["color"], "percent": v["size"] / total * 100} for k, v in acc.items()),
+        key=lambda x: x["percent"], reverse=True,
+    )
+
 
 def _placeholder():
+    rng   = random.Random(7)
+    today = datetime.now(IST).date()
+    start = today - timedelta(days=364 + (today.isoweekday() % 7))
+    weeks, week = [], []
+    d = start
+    while d <= today:
+        busy = 0.78 if d.weekday() < 5 else 0.45
+        c = rng.choice([1, 2, 3, 4, 5, 6, 8, 11, 14]) if rng.random() < busy else 0
+        week.append({"date": d.isoformat(), "contributionCount": c, "weekday": d.isoweekday() % 7})
+        if len(week) == 7:
+            weeks.append({"contributionDays": week}); week = []
+        d += timedelta(days=1)
+    if week:
+        weeks.append({"contributionDays": week})
+    days = _days(weeks)
+    now = datetime.now(timezone.utc)
     return {
-        "commits": 1242, "stars": 48, "forks": 15, "prs": 92,
-        "issues": 8, "repos": 18, "followers": 94, "total_c": 842,
-        "cur_streak": 0, "lng_streak": 6,
+        "total": sum(x["contributionCount"] for x in days), "commits": 1042, "prs": 38, "reviews": 12,
+        "repos": 18, "stars": 9, "followers": 16,
         "langs": [
-            {"name": "Java",       "color": "#b07219", "percent": 52.3},
-            {"name": "JavaScript", "color": "#f1e05a", "percent": 18.4},
-            {"name": "Python",     "color": "#3572A5", "percent": 11.2},
-            {"name": "HTML",       "color": "#e34c26", "percent": 8.7},
-            {"name": "CSS",        "color": "#563d7c", "percent": 5.1},
-            {"name": "TypeScript", "color": "#2b7489", "percent": 2.8},
-            {"name": "Shell",      "color": "#89e051", "percent": 1.5},
+            {"name": "Java",       "color": "#b07219", "percent": 41.3},
+            {"name": "TypeScript", "color": "#3178c6", "percent": 19.6},
+            {"name": "JavaScript", "color": "#f1e05a", "percent": 13.2},
+            {"name": "Rust",       "color": "#dea584", "percent": 8.9},
+            {"name": "Python",     "color": "#3572A5", "percent": 6.4},
+            {"name": "HTML",       "color": "#e34c26", "percent": 5.2},
+            {"name": "CSS",        "color": "#663399", "percent": 3.1},
+            {"name": "C++",        "color": "#f34b7d", "percent": 2.3},
         ],
-        "weeks": [],
+        "recent": [
+            {"name": "connex-app", "description": None, "stargazerCount": 1,
+             "pushedAt": (now - timedelta(hours=3)).isoformat(), "primaryLanguage": {"name": "Rust", "color": "#dea584"}},
+            {"name": "veltech-career-archive-bca2nd", "description": None, "stargazerCount": 0,
+             "pushedAt": (now - timedelta(days=16)).isoformat(), "primaryLanguage": {"name": "JavaScript", "color": "#f1e05a"}},
+            {"name": "studentmanager-cpp", "description": "sample cpp project for student management system", "stargazerCount": 1,
+             "pushedAt": (now - timedelta(days=117)).isoformat(), "primaryLanguage": {"name": "C++", "color": "#f34b7d"}},
+            {"name": "quill", "description": "Save multiple form profiles and fill any web form instantly. Local-first, no cloud.", "stargazerCount": 0,
+             "pushedAt": (now - timedelta(days=118)).isoformat(), "primaryLanguage": {"name": "TypeScript", "color": "#3178c6"}},
+        ],
+        "weeks": weeks,
+        **_activity(days),
     }
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Helpers
+# ═════════════════════════════════════════════════════════════════════════════
 def fmt(n):
-    return f"{n/1_000_000:.1f}M" if n >= 1_000_000 else f"{n/1_000:.1f}k" if n >= 1_000 else str(n)
+    return f"{n:,}" if n < 100_000 else f"{n/1000:.0f}k"
 
-# ════════════════════════════════════════════════════════════════════════════════
-# Shared SVG primitives
-# ════════════════════════════════════════════════════════════════════════════════
-def _corner_brackets(W, H, size=22, gap=10, color="#58A6FF", t=2.5):
-    g, s = gap, size
-    return (
-        f'<path d="M {g+s} {g} L {g} {g} L {g} {g+s}" stroke="{color}" stroke-width="{t}" fill="none" stroke-linecap="round" opacity=".85"/>'
-        f'<path d="M {W-g-s} {g} L {W-g} {g} L {W-g} {g+s}" stroke="{color}" stroke-width="{t}" fill="none" stroke-linecap="round" opacity=".85"/>'
-        f'<path d="M {g} {H-g-s} L {g} {H-g} L {g+s} {H-g}" stroke="{color}" stroke-width="{t}" fill="none" stroke-linecap="round" opacity=".85"/>'
-        f'<path d="M {W-g-s} {H-g} L {W-g} {H-g} L {W-g} {H-g-s}" stroke="{color}" stroke-width="{t}" fill="none" stroke-linecap="round" opacity=".85"/>'
-    )
 
-def _dot_bg(W, H, step=22, color="#58A6FF"):
-    dots = "".join(
-        f'<circle cx="{x}" cy="{y}" r=".9" fill="{color}"/>'
-        for x in range(step, W, step) for y in range(step, H, step)
-    )
-    return f'<g opacity=".05">{dots}</g>'
+def ago(iso):
+    s = (datetime.now(timezone.utc) - datetime.fromisoformat(iso.replace("Z", "+00:00"))).total_seconds()
+    for unit, size in (("y", 31_536_000), ("mo", 2_592_000), ("d", 86_400), ("h", 3_600), ("m", 60)):
+        if s >= size:
+            return f"{int(s // size)}{unit} ago"
+    return "just now"
 
-def _animated_border(W, H, color):
-    return (
-        f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="14" fill="none" stroke="{color}" stroke-width="1.2">'
-        f'<animate attributeName="stroke-opacity" values=".3;.95;.3" dur="2.8s" repeatCount="indefinite"/>'
-        f'</rect>'
-    )
 
-def _scanline(W, H, color):
-    return (
-        f'<rect x="0" y="0" width="{W}" height="5" fill="{color}" opacity=".07">'
-        f'<animateTransform attributeName="transform" type="translate" '
-        f'from="0 -5" to="0 {H+5}" dur="4s" repeatCount="indefinite" calcMode="linear"/>'
-        f'</rect>'
-    )
+def clip(text, n):
+    return text if len(text) <= n else text[: n - 1].rstrip() + "…"
 
-def _clip_bar(uid, bx, by, bw, bh, fill, delay=0, dur=1.3, rx=2):
-    """Animated progress bar via SVG clipPath — grows left→right."""
-    return (
-        f'<clipPath id="cp{uid}"><rect x="{bx}" y="{by}" width="0" height="{bh}">'
-        f'<animate attributeName="width" from="0" to="{bw}" dur="{dur}s" begin="{delay}s" fill="freeze" '
-        f'calcMode="spline" keyTimes="0;1" keySplines=".22 1 .36 1"/>'
-        f'</rect></clipPath>'
-        f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="{rx}" fill="{fill}" clip-path="url(#cp{uid})"/>'
-    )
 
-# ════════════════════════════════════════════════════════════════════════════════
-# BANNER SVG  (900 × 200) — Particle field + gradient name
-# ════════════════════════════════════════════════════════════════════════════════
-def build_banner_svg() -> str:
-    W, H = 900, 200
-    random.seed(42)
+def text_w(s, size, mono=False):
+    """Rough text width, good enough to size pills."""
+    return len(s) * size * (0.6 if mono else 0.55)
 
-    # 35 animated glowing particles
-    particles = ""
-    for _ in range(35):
-        px  = random.randint(20, W - 20)
-        py  = random.randint(10, H - 10)
-        pr  = round(random.uniform(1.0, 3.0), 1)
-        dl  = round(random.uniform(0, 5), 2)
-        dr  = round(random.uniform(1.8, 4.5), 2)
-        col = random.choice([P["blue"], P["purple"], P["amber"], P["teal"], P["green"]])
-        particles += (
-            f'<circle cx="{px}" cy="{py}" r="{pr}" fill="{col}">'
-            f'<animate attributeName="opacity" values=".12;.9;.12" dur="{dr}s" begin="{dl}s" repeatCount="indefinite"/>'
-            f'<animate attributeName="r" values="{pr};{pr*1.7:.1f};{pr}" dur="{dr*1.3:.1f}s" begin="{dl}s" repeatCount="indefinite"/>'
-            f'</circle>'
+
+def status_for(now: datetime):
+    """The banner's status chip. Changes with the hour, the weekday and a few holidays."""
+    md, h, wd = (now.month, now.day), now.hour, now.weekday()
+    yday = now.timetuple().tm_yday
+    special = {
+        (1, 1):   "new year, new bugs",
+        (2, 14):  "in a committed relationship (with git)",
+        (3, 14):  "π day · 3.14159 commits",
+        (4, 1):   "all tests passing (april fools)",
+        (5, 4):   "may the --force be with you",
+        (10, 31): "haunted by legacy code",
+        (12, 25): "merging gifts into main",
+        (12, 31): "git commit -m \"wrapping up the year\"",
+    }
+    if yday == 256:  # Programmer's Day: the 256th day of the year
+        return "programmer's day · 0x100", P["amber"]
+    if md in special:
+        return special[md], P["amber"]
+    if 0 <= h < 5:
+        return "3 a.m. debugging — send coffee", P["amber"]
+    if wd == 4 and h >= 15:
+        return "friday: no prod deploys, only vibes", P["amber"]
+    if wd >= 5:
+        return "weekend · side projects compiling", P["green"]
+    if h < 9:
+        return "early commit club", P["green"]
+    if h < 13:
+        return "deep work · building backends", P["green"]
+    if h < 18:
+        return "shipping features", P["green"]
+    if h < 22:
+        return "reviewing PRs & teaching", P["green"]
+    return "one more commit, then sleep", P["green"]
+
+
+def _seasonal(now: datetime, W, H):
+    """Small decorations for certain times of year."""
+    if now.month == 10 and now.day >= 20:
+        # A spider drops in from the top edge now and then.
+        legs = "".join(
+            f'<path d="M0 0 q{dx*9} {dy} {dx*14} {dy+6}" stroke="{P["muted"]}" stroke-width="1.2" fill="none"/>'
+            for dx in (-1, 1) for dy in (-5, -1, 3, 7)
         )
+        return (
+            f'<g class="spider"><line x1="560" y1="0" x2="560" y2="60" stroke="{P["faint"]}" stroke-width="1"/>'
+            f'<g transform="translate(560 66)">{legs}<circle r="6" fill="{P["muted"]}"/>'
+            f'<circle cx="-2" cy="-1" r="1.2" fill="{P["pink"]}"/><circle cx="2" cy="-1" r="1.2" fill="{P["pink"]}"/></g></g>'
+        )
+    if now.month == 12:
+        rng = random.Random(now.day)
+        flakes = "".join(
+            f'<circle cx="{rng.randint(0, W)}" cy="-6" r="{rng.uniform(1, 2.4):.1f}" fill="#fff" opacity=".6">'
+            f'<animate attributeName="cy" from="-6" to="{H + 6}" dur="{rng.uniform(6, 13):.1f}s" '
+            f'begin="{rng.uniform(0, 8):.1f}s" repeatCount="indefinite"/></circle>'
+            for _ in range(45)
+        )
+        return f"<g>{flakes}</g>"
+    return ""
 
-    # Horizontal scan lines (decorative background)
-    hlines = "".join(
-        f'<line x1="0" y1="{y}" x2="{W}" y2="{y}" stroke="{P["blue"]}" stroke-width=".4" opacity=".05"/>'
-        for y in range(0, H, 8)
+
+INVADER = [
+    "..X.....X..",
+    "...X...X...",
+    "..XXXXXXX..",
+    ".XX.XXX.XX.",
+    "XXXXXXXXXXX",
+    "X.XXXXXXX.X",
+    "X.X.....X.X",
+    "...XX.XX...",
+]
+
+
+def _invader(px=3, color=P["green"]):
+    return "".join(
+        f'<rect x="{x*px}" y="{y*px}" width="{px}" height="{px}" fill="{color}"/>'
+        for y, row in enumerate(INVADER) for x, ch in enumerate(row) if ch == "X"
     )
 
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
-<defs>
-  <style>
-    @keyframes nameIn  {{ from{{opacity:0;transform:translateY(-16px)}} to{{opacity:1;transform:translateY(0)}} }}
-    @keyframes subIn   {{ from{{opacity:0;transform:translateY(16px)}}  to{{opacity:1;transform:translateY(0)}} }}
-    @keyframes glowN   {{ 0%,100%{{filter:drop-shadow(0 0 6px {P["blue"]}90)}} 50%{{filter:drop-shadow(0 0 24px {P["blue"]})}} }}
-    @keyframes chipIn  {{ from{{opacity:0;transform:scale(.7)}} to{{opacity:1;transform:scale(1)}} }}
-    @keyframes pulseGr {{ 0%,100%{{opacity:1;r:3.5}} 50%{{opacity:.3;r:5.5}} }}
-  </style>
-  <linearGradient id="nameG" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"   stop-color="{P["blue"]}"/>
-    <stop offset="44%"  stop-color="{P["purple"]}"/>
-    <stop offset="100%" stop-color="{P["amber"]}"/>
-  </linearGradient>
-  <linearGradient id="bgB" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="{P["bg"]}"/>
-    <stop offset="100%" stop-color="{P["bg3"]}"/>
-  </linearGradient>
-  <linearGradient id="topG" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"   stop-color="{P["blue"]}"/>
-    <stop offset="50%"  stop-color="{P["purple"]}"/>
-    <stop offset="100%" stop-color="{P["amber"]}"/>
-  </linearGradient>
-  <filter id="gN" x="-10%" y="-40%" width="120%" height="180%">
-    <feGaussianBlur stdDeviation="5" result="blur"/>
-    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-  <clipPath id="bClip"><rect width="{W}" height="{H}" rx="16"/></clipPath>
-</defs>
 
-<rect width="{W}" height="{H}" rx="16" fill="url(#bgB)"/>
-
-<!-- Scan lines -->
-<g clip-path="url(#bClip)">{hlines}</g>
-
-<!-- Particles -->
-<g clip-path="url(#bClip)">{particles}</g>
-
-<!-- Corner brackets -->
-{_corner_brackets(W, H, size=20, gap=10, color=P["amber"], t=2.2)}
-
-<!-- Name -->
-<text x="{W//2}" y="98" text-anchor="middle"
-  font-family="'Segoe UI',Ubuntu,'Helvetica Neue',sans-serif"
-  font-size="58" font-weight="800" letter-spacing="-1"
-  fill="url(#nameG)" filter="url(#gN)"
-  style="animation:nameIn .9s cubic-bezier(.16,1,.3,1) both, glowN 3.5s 1.8s ease-in-out infinite">
-  GURU KANNAN
-</text>
-
-<!-- Subtitle -->
-<text x="{W//2}" y="130" text-anchor="middle"
-  font-family="'Courier New',Courier,monospace"
-  font-size="12.5" font-weight="500" letter-spacing=".24em" fill="{P["dim"]}"
-  style="animation:subIn 1s .5s ease both">
-  SYSTEM ENGINEER  ·  FULL STACK DEVELOPER  ·  TECH EDUCATOR
-</text>
-
-<!-- Growing accent bar -->
-<rect x="{W//2}" y="148" width="0" height="2" rx="1" fill="url(#topG)">
-  <animate attributeName="width" from="0" to="190" dur=".9s" begin=".9s" fill="freeze"
-    calcMode="spline" keyTimes="0;1" keySplines=".22 1 .36 1"/>
-  <animate attributeName="x" from="{W//2}" to="{W//2 - 95}" dur=".9s" begin=".9s" fill="freeze"
-    calcMode="spline" keyTimes="0;1" keySplines=".22 1 .36 1"/>
-</rect>
-
-<!-- Status chip -->
-<rect x="{W//2 - 52}" y="158" width="104" height="22" rx="11"
-  fill="{P["green"]}18" stroke="{P["green"]}" stroke-width=".9"
-  style="animation:chipIn .7s 1.3s cubic-bezier(.34,1.56,.64,1) both"/>
-<circle cx="{W//2 - 32}" cy="169" r="0" fill="{P["green"]}">
-  <animate attributeName="r"       values="3.5;5.5;3.5" dur="1.5s" repeatCount="indefinite"/>
-  <animate attributeName="opacity" values="1;.2;1"       dur="1.5s" repeatCount="indefinite"/>
-</circle>
-<text x="{W//2 - 20}" y="174" text-anchor="start"
-  font-family="'Courier New',monospace" font-size="10" font-weight="700" fill="{P["green"]}"
-  style="animation:chipIn .7s 1.3s cubic-bezier(.34,1.56,.64,1) both">
-  ONLINE · SHIPPING
-</text>
-
+def _card(W, H, inner):
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" font-family="{SANS}">
+{inner}
 </svg>"""
 
 
-# ════════════════════════════════════════════════════════════════════════════════
-# STATS SVG  (900 × 340) — Cyberpunk stat cards + heatmap
-# ════════════════════════════════════════════════════════════════════════════════
-def build_stats_svg(d: dict) -> str:
-    W, H   = 900, 340
-    now    = datetime.now(timezone.utc).strftime("%Y-%m-%d  %H:%M UTC")
-    CW, CH = 138, 90   # card width / height
+def _frame(W, H, cid):
+    return (
+        f'<clipPath id="{cid}"><rect width="{W}" height="{H}" rx="16"/></clipPath>'
+        f'<rect width="{W}" height="{H}" rx="16" fill="{P["panel"]}"/>'
+        f'<rect x=".5" y=".5" width="{W-1}" height="{H-1}" rx="15.5" fill="none" stroke="{P["border"]}"/>'
+    )
 
-    # 8 stat cards: (label, value, sub, color, card_x, card_y, raw_val)
-    STATS = [
-        ("COMMITS",    fmt(d["commits"]),     "all time",      P["blue"],   32,  76,  d["commits"]),
-        ("STREAK",     f'{d["cur_streak"]}d', "current",       P["amber"],  186, 76,  d["cur_streak"]),
-        ("STARS",      fmt(d["stars"]),        "earned",        P["purple"], 340, 76,  d["stars"]),
-        ("PRs MERGED", fmt(d["prs"]),          "merged",        P["green"],  494, 76,  d["prs"]),
-        ("REPOS",      fmt(d["repos"]),        "public",        P["pink"],   32,  196, d["repos"]),
-        ("FOLLOWERS",  fmt(d["followers"]),    "github",        P["blue"],   186, 196, d["followers"]),
-        ("ISSUES",     fmt(d["issues"]),       "open",          P["amber"],  340, 196, d["issues"]),
-        ("BEST STREAK",f'{d["lng_streak"]}d', "all time",      P["teal"],   494, 196, d["lng_streak"]),
+
+# ═════════════════════════════════════════════════════════════════════════════
+# BANNER  (1200 × 330)
+# ═════════════════════════════════════════════════════════════════════════════
+def build_banner_svg(d: dict, now: datetime) -> str:
+    W, H = 1200, 330
+    status, s_col = status_for(now)
+    chip_w = text_w(status, 13, mono=True) + 46
+    april = (now.month, now.day) == (4, 1)
+
+    secret  = "never stop shipping"
+    binary  = " ".join(f"{ord(c):08b}" for c in secret)
+    konami  = "↑ ↑ ↓ ↓ ← → ← → B A"
+
+    term_x, term_y, term_w, term_h = 704, 46, 440, 238
+    lines = [
+        ("$", "whoami"),
+        ("", "guru — backend engineer & tech educator"),
+        ("$", "cat ~/.stack"),
+        ("", "java · spring boot · kafka · react · aws"),
+        ("$", "git log -1 --oneline"),
+        ("hash", f"feat: {fmt(d['total'])} contributions in 12 months"),
     ]
+    term = ""
+    for i, (kind, txt) in enumerate(lines):
+        y = term_y + 74 + i * 25
+        if kind == "$":
+            body = f'<tspan fill="{P["green"]}">❯</tspan> <tspan fill="{P["text"]}">{escape(txt)}</tspan>'
+        elif kind == "hash":
+            body = f'<tspan fill="{P["amber"]}">c0ffee5</tspan> <tspan fill="{P["muted"]}">{escape(txt)}</tspan>'
+        else:
+            body = f'<tspan fill="{P["muted"]}">{escape(txt)}</tspan>'
+        term += f'<text x="{term_x+24}" y="{y}" class="mono t">{body}</text>'
+    yl = term_y + 74 + len(lines) * 25
+    term += (
+        f'<text x="{term_x+24}" y="{yl}" class="mono t">'
+        f'<tspan fill="{P["green"]}">❯</tspan> <tspan class="cur" fill="{P["blue"]}">▍</tspan></text>'
+        f'<text x="{term_x+50}" y="{yl}" class="mono psst" fill="{P["amber"]}" font-size="13">psst… try hovering the images</text>'
+    )
 
-    max_raw = max(s[6] for s in STATS) or 1
-    clip_defs = ""
-    cards     = ""
+    name_tf = f' transform="translate({64*2 + 450} 0) scale(-1 1)"' if april else ""
 
-    for i, (label, val, sub, color, cx, cy, raw) in enumerate(STATS):
-        delay = i * 0.11
-        bar_w = max(4, int(raw / max_raw * (CW - 22)))
-        bx, by = cx + 11, cy + CH - 20
-        uid = f"s{i}"
-        clip_defs += _clip_bar(uid, bx, by, bar_w, 4, color, delay=round(delay + 0.55, 2), rx=2)
+    return _card(W, H, f"""
+<defs>
+  <style>
+    .mono {{ font-family:{MONO} }}
+    .t    {{ font-size:14px }}
+    .cur  {{ animation:blink 1.1s step-end infinite }}
+    .psst {{ opacity:0; animation:psst 23s 6s linear infinite }}
+    .inv  {{ animation:fly 41s 9s linear infinite; transform:translateX(-60px) }}
+    .spider {{ animation:drop 14s 3s ease-in-out infinite; transform:translateY(-90px) }}
+    .pulse {{ animation:pulse 1.8s ease-in-out infinite }}
+    @keyframes blink {{ 50% {{ opacity:0 }} }}
+    @keyframes psst  {{ 0%,91% {{ opacity:0 }} 92%,98% {{ opacity:.9 }} 100% {{ opacity:0 }} }}
+    @keyframes fly   {{ 0% {{ transform:translateX(-60px) }} 14%,100% {{ transform:translateX({W+60}px) }} }}
+    @keyframes drop  {{ 0%,60%,100% {{ transform:translateY(-90px) }} 70%,88% {{ transform:translateY(0) }} }}
+    @keyframes pulse {{ 0%,100% {{ opacity:1 }} 50% {{ opacity:.35 }} }}
+    @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important }} }}
+  </style>
+  <radialGradient id="glow" cx="12%" cy="0%" r="70%">
+    <stop offset="0%" stop-color="{P["blue"]}" stop-opacity=".16"/>
+    <stop offset="100%" stop-color="{P["blue"]}" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="nameG" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#FFFFFF"/>
+    <stop offset="100%" stop-color="{P["indigo"]}"/>
+  </linearGradient>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M32 0H0V32" fill="none" stroke="#fff" stroke-opacity=".035"/>
+  </pattern>
+</defs>
+{_frame(W, H, "bc")}
+<g clip-path="url(#bc)">
+  <rect width="{W}" height="{H}" fill="url(#grid)"/>
+  <rect width="{W}" height="{H}" fill="url(#glow)"/>
+  {_seasonal(now, W, H)}
+  <g class="inv" opacity=".85"><g transform="translate(0 14)">{_invader()}</g></g>
+</g>
 
-        cards += f"""
-<g style="animation:cardUp .5s {delay:.2f}s cubic-bezier(.16,1,.3,1) both">
-  <rect x="{cx}" y="{cy}" width="{CW}" height="{CH}" rx="10" fill="{P["bg3"]}"/>
-  <rect x="{cx}" y="{cy}" width="{CW}" height="{CH}" rx="10" fill="none" stroke="{color}" stroke-width=".7" opacity=".4"/>
-  <rect x="{cx+11}" y="{cy}" width="32" height="2.5" rx="0" fill="{color}" opacity=".9"/>
-  <text x="{cx+11}" y="{cy+17}" font-family="'Courier New',monospace" font-size="9" font-weight="700"
-    letter-spacing=".13em" fill="{P["dim"]}">{label}</text>
-  <text x="{cx+11}" y="{cy+53}" font-family="'Segoe UI',Ubuntu,sans-serif" font-size="30" font-weight="800"
-    fill="{color}">{val}
-    <animate attributeName="opacity" values="0;1" dur=".35s" begin="{delay:.2f}s" fill="freeze"/>
-  </text>
-  <text x="{cx+11}" y="{cy+66}" font-family="'Courier New',monospace" font-size="9" fill="{P["dim"]}">{sub}</text>
-  <rect x="{bx}" y="{by}" width="{CW-22}" height="4" rx="2" fill="{P["border"]}"/>
-</g>"""
+<!-- intro -->
+<g>
+  <text x="64" y="92" class="mono" font-size="13" letter-spacing="2.4" fill="{P["muted"]}">HELLO, WORLD — I'M</text>
+</g>
+<g{name_tf}>
+  <text x="62" y="162" font-size="72" font-weight="700" letter-spacing="-2" fill="url(#nameG)">Guru Kannan</text>
+</g>
+<g>
+  <text x="64" y="204" font-size="22" font-weight="500" fill="{P["soft"]}">Backend engineer · Java · Spring Boot · Kafka</text>
+  <text x="64" y="236" font-size="16" fill="{P["muted"]}">Building production systems by day, teaching fundamentals by night.</text>
+</g>
+<g>
+  <rect x="64" y="258" width="{chip_w:.0f}" height="30" rx="15" fill="{s_col}" fill-opacity=".1" stroke="{s_col}" stroke-opacity=".45"/>
+  <circle cx="84" cy="273" r="4.5" fill="{s_col}" class="pulse"/>
+  <text x="98" y="277.5" class="mono" font-size="13" fill="{s_col}">{escape(status)}</text>
+</g>
 
-    # 18-week heatmap with animated cell fade-in
-    recent = d["weeks"][-18:] if len(d["weeks"]) >= 18 else d["weeks"]
-    CELL, GAP = 9, 2
-    hx0, hy0  = 656, 82
-    cells = ""
-    for wi, week in enumerate(recent):
-        for di, day in enumerate(week["contributionDays"]):
-            c = day["contributionCount"]
-            fill = ("#0e4429" if c <= 3 else "#006d32" if c <= 6 else
-                    "#26a641" if c <= 9 else "#39d353") if c > 0 else P["border"]
-            d_s = round((wi * 7 + di) * 0.008, 3)
+<!-- terminal -->
+<g>
+  <rect x="{term_x}" y="{term_y}" width="{term_w}" height="{term_h}" rx="12" fill="{P["bg"]}" stroke="{P["line"]}"/>
+  <path d="M{term_x} {term_y+38}h{term_w}" stroke="{P["border"]}"/>
+  <circle cx="{term_x+22}" cy="{term_y+19}" r="5.5" fill="#FF5F57"/>
+  <circle cx="{term_x+40}" cy="{term_y+19}" r="5.5" fill="#FEBC2E"/>
+  <circle cx="{term_x+58}" cy="{term_y+19}" r="5.5" fill="#28C840"/>
+  <text x="{term_x+term_w/2}" y="{term_y+23.5}" text-anchor="middle" class="mono" font-size="12" fill="{P["faint"]}">guru@github: ~</text>
+</g>
+{term}
+
+<!-- the fine print -->
+<text x="64" y="{H-14}" class="mono" font-size="8" fill="{P["faint"]}" opacity=".55">{binary}</text>
+<text x="{W-56}" y="{H-14}" text-anchor="end" class="mono" font-size="9" fill="{P["faint"]}" opacity=".55">{konami}</text>
+""")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ACTIVITY  (1200 × 440)
+# ═════════════════════════════════════════════════════════════════════════════
+def _level(c, peak):
+    if c == 0:
+        return 0
+    r = c / (peak or 1)
+    return 1 if r <= .25 else 2 if r <= .5 else 3 if r <= .75 else 4
+
+
+def build_stats_svg(d: dict, now: datetime) -> str:
+    W, H = 1200, 440
+    weeks = d["weeks"][-53:]
+    synced = now.strftime("%d %b, %H:%M IST")
+    fortune = FORTUNES[now.date().toordinal() % len(FORTUNES)]
+
+    metrics = [
+        (fmt(d["total"]), "",  "contributions", "last 12 months"),
+        (str(d["cur_streak"]), " days" if d["cur_streak"] != 1 else " day", "current streak",
+         "and counting" if d["cur_streak"] else "resets never last"),
+        (str(d["lng_streak"]), " days", "longest streak", "personal best"),
+        (str(d["active"]), " days", "active days", f'{d["active"] / (d["n_days"] or 1):.0%} of the year'),
+        (fmt(d["last7"]), "", "this week", "contributions, last 7 days"),
+    ]
+    col = (W - 96) / len(metrics)
+    m_svg = ""
+    for i, (val, unit, label, sub) in enumerate(metrics):
+        x = 48 + i * col + (0 if i == 0 else 28)
+        if i:
+            m_svg += f'<path d="M{48 + i*col:.0f} 86v76" stroke="{P["border"]}"/>'
+        m_svg += (
+            '<g>'
+            f'<text x="{x:.0f}" y="128" font-size="40" font-weight="700" letter-spacing="-1" fill="{P["text"]}">{val}'
+            f'<tspan font-size="18" font-weight="500" fill="{P["muted"]}" letter-spacing="0">{unit}</tspan></text>'
+            f'<text x="{x:.0f}" y="152" font-size="14" font-weight="600" fill="{P["soft"]}">{label}</text>'
+            f'<text x="{x:.0f}" y="171" font-size="12" fill="{P["muted"]}">{sub}</text></g>'
+        )
+
+    # Heatmap
+    x0, y0, cell, step = 96, 232, 15, 19
+    peak = max((c["contributionCount"] for w in weeks for c in w["contributionDays"]), default=1)
+    cells, months, last_m = "", "", None
+    for wi, w in enumerate(weeks):
+        first = date.fromisoformat(w["contributionDays"][0]["date"])
+        if first.month != last_m:
+            if last_m is not None and wi < len(weeks) - 2:
+                months += f'<text x="{x0 + wi*step}" y="{y0-12}" font-size="12" fill="{P["muted"]}">{first.strftime("%b")}</text>'
+            last_m = first.month
+        for c in w["contributionDays"]:
+            wd = c.get("weekday", date.fromisoformat(c["date"]).isoweekday() % 7)
+            cx, cy = x0 + wi * step, y0 + wd * step
+            lv = _level(c["contributionCount"], peak)
+            best = c["date"] == d["best_date"] and c["contributionCount"] > 0
+            stroke = f' stroke="{P["amber"]}" stroke-width="1.5"' if best else ""
             cells += (
-                f'<rect x="{hx0 + wi*(CELL+GAP)}" y="{hy0 + di*(CELL+GAP)}" '
-                f'width="{CELL}" height="{CELL}" rx="2" fill="{fill}">'
-                f'<animate attributeName="opacity" values="0;1" dur=".3s" begin="{d_s}s" fill="freeze"/>'
-                f'</rect>'
+                f'<rect x="{cx}" y="{cy}" width="{cell}" height="{cell}" rx="3.5" fill="{HEAT[lv]}"{stroke} '
+                '/>'
             )
+    wd_labels = "".join(
+        f'<text x="{x0-14}" y="{y0 + i*step + 11.5}" text-anchor="end" font-size="12" fill="{P["muted"]}">{n}</text>'
+        for i, n in ((1, "Mon"), (3, "Wed"), (5, "Fri"))
+    )
+    legend = "".join(
+        f'<rect x="{x0 + 40 + i*19}" y="{H-50}" width="15" height="15" rx="3.5" fill="{c}"/>' for i, c in enumerate(HEAT)
+    )
 
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
+    return _card(W, H, f"""
 <defs>
   <style>
-    @keyframes cardUp  {{ from{{opacity:0;transform:translateY(14px)}} to{{opacity:1;transform:translateY(0)}} }}
-    @keyframes blinkC  {{ 0%,100%{{opacity:1}} 50%{{opacity:0}} }}
+    .mono {{ font-family:{MONO} }}
   </style>
-  <linearGradient id="topSt" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"   stop-color="{P["blue"]}"/>
-    <stop offset="42%"  stop-color="{P["purple"]}"/>
-    <stop offset="100%" stop-color="{P["amber"]}"/>
-  </linearGradient>
-  <linearGradient id="bgSt" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="{P["bg2"]}"/>
-    <stop offset="100%" stop-color="#090d14"/>
-  </linearGradient>
-  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-    <feGaussianBlur stdDeviation="3" result="blur"/>
-    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-  <clipPath id="stClip"><rect width="{W}" height="{H}" rx="15"/></clipPath>
-  {clip_defs}
 </defs>
-
-<rect width="{W}" height="{H}" rx="15" fill="url(#bgSt)"/>
-{_dot_bg(W, H, step=22, color=P["blue"])}
-<g clip-path="url(#stClip)">{_scanline(W, H, P["blue"])}</g>
-{_animated_border(W, H, P["blue"])}
-{_corner_brackets(W, H, size=20, gap=10, color=P["blue"], t=2.3)}
-
-<!-- terminal prompt -->
-<text x="32" y="48" font-family="'Courier New',monospace" font-size="13" font-weight="600">
-  <tspan fill="{P["green"]}">guru</tspan><tspan fill="{P["dim"]}">@github:</tspan>
-  <tspan fill="{P["blue"]}">~/profile/stats</tspan>
-  <tspan fill="{P["dim"]}"> $ </tspan>
-  <tspan fill="{P["text"]}">./live --fetch --all-metrics</tspan>
-  <tspan fill="{P["blue"]}" style="animation:blinkC 1.1s step-end infinite">█</tspan>
-</text>
-
-<!-- LIVE chip -->
-<rect x="824" y="32" width="50" height="22" rx="11"
-  fill="{P["green"]}15" stroke="{P["green"]}" stroke-width=".8"/>
-<circle cx="837" cy="43" r="0" fill="{P["green"]}">
-  <animate attributeName="r"       values="3;4.8;3" dur="1.4s" repeatCount="indefinite"/>
-  <animate attributeName="opacity" values="1;.2;1"  dur="1.4s" repeatCount="indefinite"/>
-</circle>
-<text x="845" y="48" font-family="'Courier New',monospace" font-size="10" font-weight="700" fill="{P["green"]}">LIVE</text>
-
-<line x1="32" y1="60" x2="{W-32}" y2="60" stroke="{P["border"]}" stroke-width="1"/>
-<text x="32"  y="73" font-family="'Courier New',monospace" font-size="9" font-weight="700" letter-spacing=".13em" fill="{P["dim"]}">// METRICS</text>
-<text x="656" y="73" font-family="'Courier New',monospace" font-size="9" font-weight="700" letter-spacing=".13em" fill="{P["dim"]}">// CONTRIBUTION HEATMAP (18 WEEKS)</text>
-<line x1="642" y1="62" x2="642" y2="{H-42}" stroke="{P["border"]}" stroke-width="1"/>
-
-{cards}
-{cells}
-
-<!-- heatmap legend -->
-<text x="656" y="250" font-family="'Courier New',monospace" font-size="8" fill="{P["dim"]}">Less</text>
-<rect x="684" y="243" width="9" height="9" rx="2" fill="{P["border"]}"/>
-<rect x="696" y="243" width="9" height="9" rx="2" fill="#0e4429"/>
-<rect x="708" y="243" width="9" height="9" rx="2" fill="#006d32"/>
-<rect x="720" y="243" width="9" height="9" rx="2" fill="#26a641"/>
-<rect x="732" y="243" width="9" height="9" rx="2" fill="#39d353"/>
-<text x="745" y="250" font-family="'Courier New',monospace" font-size="8" fill="{P["dim"]}">More</text>
-
-<!-- total contributions pill -->
-<rect x="656" y="261" width="{W-32-656}" height="28" rx="8"
-  fill="{P["green"]}0F" stroke="{P["green"]}" stroke-width=".7"/>
-<text x="{656 + (W-32-656)//2}" y="280" text-anchor="middle"
-  font-family="'Segoe UI',sans-serif" font-size="13" font-weight="800" fill="{P["green"]}">
-  {fmt(d["total_c"])} contributions this year
-</text>
-
-<line x1="32" y1="{H-36}" x2="{W-32}" y2="{H-36}" stroke="{P["border"]}" stroke-width="1"/>
-<text x="32"      y="{H-16}" font-family="'Courier New',monospace" font-size="9" fill="{P["dim"]}">⟳ AUTO-UPDATED · {now}</text>
-<text x="{W-32}"  y="{H-16}" font-family="'Courier New',monospace" font-size="9" fill="{P["dim"]}" text-anchor="end">github.com/{USERNAME}</text>
-
-</svg>"""
+{_frame(W, H, "sc")}
+<text x="48" y="54" class="mono" font-size="13" letter-spacing="2.4" fill="{P["muted"]}">CONTRIBUTION ACTIVITY</text>
+<text x="{W-48}" y="54" text-anchor="end" font-size="13" fill="{P["muted"]}">most active on {d["top_wd"]}s · <tspan fill="{P["faint"]}">synced {synced}</tspan></text>
+<path d="M48 72H{W-48}" stroke="{P["border"]}"/>
+{m_svg}
+<path d="M48 196H{W-48}" stroke="{P["border"]}"/>
+{months}{wd_labels}{cells}
+<text x="{x0}" y="{H-38}" font-size="12" fill="{P["muted"]}">Less</text>{legend}
+<text x="{x0 + 40 + 5*19 + 6}" y="{H-38}" font-size="12" fill="{P["muted"]}">More</text>
+<rect x="{x0 + 180}" y="{H-50}" width="15" height="15" rx="3.5" fill="none" stroke="{P["amber"]}" stroke-width="1.5"/>
+<text x="{x0 + 203}" y="{H-38}" font-size="12" fill="{P["muted"]}">best day · {d["best_day"]}</text>
+<text x="{W-48}" y="{H-38}" text-anchor="end" class="mono" font-size="12" fill="{P["faint"]}">$ fortune → <tspan fill="{P["muted"]}">{escape(fortune)}</tspan></text>
+""")
 
 
-# ════════════════════════════════════════════════════════════════════════════════
-# LANGS SVG  (440 × 340) — Animated donut ring + staggered bars
-# ════════════════════════════════════════════════════════════════════════════════
-def _donut_seg(cx, cy, R, Ri, a0, a1):
-    def pt(deg, r):
-        rad = math.radians(deg - 90)
-        return cx + r * math.cos(rad), cy + r * math.sin(rad)
-    large = 1 if (a1 - a0) > 180 else 0
-    x1, y1 = pt(a0, R);  x2, y2 = pt(a1, R)
-    xi1,yi1 = pt(a1, Ri); xi2,yi2 = pt(a0, Ri)
-    return (f"M {x1:.2f} {y1:.2f} A {R} {R} 0 {large} 1 {x2:.2f} {y2:.2f} "
-            f"L {xi1:.2f} {yi1:.2f} A {Ri} {Ri} 0 {large} 0 {xi2:.2f} {yi2:.2f} Z")
-
+# ═════════════════════════════════════════════════════════════════════════════
+# LANGUAGES  (590 × 320)
+# ═════════════════════════════════════════════════════════════════════════════
 def build_langs_svg(d: dict) -> str:
-    W, H  = 440, 340
+    W, H = 590, 320
     langs = d["langs"][:8]
-    now   = datetime.now(timezone.utc).strftime("%Y-%m-%d  %H:%M UTC")
-    CX, CY, R, Ri = 126, 168, 88, 52
-
-    # Donut segments — fade + scale in staggered
-    segs  = ""
-    angle = -90.0
-    for i, lang in enumerate(langs):
-        sweep = lang["percent"] / 100 * 360
-        path  = _donut_seg(CX, CY, R, Ri, angle, angle + sweep)
-        color = lang.get("color") or "#858585"
-        delay = i * 0.10
-        segs += (
-            f'<path d="{path}" fill="{color}" opacity="0">'
-            f'<animate attributeName="opacity" values="0;.95" dur=".4s" begin="{delay:.2f}s" fill="freeze"/>'
-            f'</path>\n'
+    shown = sum(l["percent"] for l in langs) or 1
+    bx, bw = 40, W - 80
+    bar, x = "", bx
+    for l in langs:
+        w = l["percent"] / shown * bw
+        bar += f'<rect x="{x:.1f}" y="84" width="{max(w - 2, 1):.1f}" height="10" fill="{l["color"] or P["muted"]}"/>'
+        x += w
+    rows = ""
+    for i, l in enumerate(langs):
+        cx = 40 + (i // 4) * 265
+        cy = 140 + (i % 4) * 38
+        rows += (
+            '<g>'
+            f'<circle cx="{cx+6}" cy="{cy-5}" r="6" fill="{l["color"] or P["muted"]}"/>'
+            f'<text x="{cx+22}" y="{cy}" font-size="15" font-weight="500" fill="{P["text"]}">{escape(l["name"])}</text>'
+            f'<text x="{cx+240}" y="{cy}" text-anchor="end" class="mono" font-size="13" fill="{P["muted"]}">{l["percent"]:.1f}%</text></g>'
         )
-        angle += sweep
-
-    # Outer ring that draws itself
-    circ = 2 * math.pi * (R + 6)
-    segs += (
-        f'<circle cx="{CX}" cy="{CY}" r="{R+6}" fill="none" '
-        f'stroke="{P["purple"]}" stroke-width="1.8" opacity=".22" '
-        f'stroke-dasharray="{circ:.1f}" stroke-dashoffset="{circ:.1f}">'
-        f'<animate attributeName="stroke-dashoffset" from="{circ:.1f}" to="0" '
-        f'dur="1.6s" begin=".15s" fill="freeze" '
-        f'calcMode="spline" keyTimes="0;1" keySplines=".22 1 .36 1"/>'
-        f'</circle>'
-    )
-
-    # Donut center
-    top  = langs[0]["name"][:8] if langs else "Java"
-    tpct = langs[0]["percent"]  if langs else 0.0
-    segs += (
-        f'<circle cx="{CX}" cy="{CY}" r="{Ri-4}" fill="{P["bg2"]}"/>'
-        f'<text x="{CX}" y="{CY-14}" text-anchor="middle" '
-        f'font-family="\'Courier New\',monospace" font-size="8.5" fill="{P["dim"]}">TOP LANG</text>'
-        f'<text x="{CX}" y="{CY+8}" text-anchor="middle" '
-        f'font-family="\'Segoe UI\',Ubuntu,sans-serif" font-size="15" font-weight="800" '
-        f'fill="{P["white"]}">{top}</text>'
-        f'<text x="{CX}" y="{CY+26}" text-anchor="middle" '
-        f'font-family="\'Courier New\',monospace" font-size="13" font-weight="700" '
-        f'fill="{P["purple"]}">{tpct}%</text>'
-    )
-
-    # Language bars (clip-path animated)
-    bx0, by0, bmax = 248, 84, 163
-    clip_defs = ""
-    bars      = ""
-    for i, lang in enumerate(langs):
-        by    = by0 + i * 30
-        color = lang.get("color") or "#858585"
-        bw    = max(4, int(lang["percent"] / 100 * bmax))
-        delay = i * 0.10
-        uid   = f"L{i}"
-        clip_defs += _clip_bar(uid, bx0, by + 15, bw, 5, color, delay=round(delay + 0.5, 2), dur=1.0, rx=2)
-        bars += (
-            f'<g style="animation:cardUp .45s {delay:.2f}s cubic-bezier(.16,1,.3,1) both">'
-            f'<circle cx="{bx0-11}" cy="{by+8}" r="4.5" fill="{color}"/>'
-            f'<text x="{bx0}" y="{by+13}" font-family="\'Courier New\',monospace" '
-            f'font-size="11" font-weight="600" fill="{P["text"]}">{lang["name"]}</text>'
-            f'<text x="{bx0+bmax+8}" y="{by+13}" font-family="\'Courier New\',monospace" '
-            f'font-size="10" font-weight="800" fill="{color}">{lang["percent"]}%</text>'
-            f'<rect x="{bx0}" y="{by+15}" width="{bmax}" height="5" rx="2" fill="{P["border"]}"/>'
-            f'</g>'
-        )
-
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
+    return _card(W, H, f"""
 <defs>
   <style>
-    @keyframes cardUp {{ from{{opacity:0;transform:translateY(12px)}} to{{opacity:1;transform:translateY(0)}} }}
+    .mono {{ font-family:{MONO} }}
   </style>
-  <linearGradient id="topLg" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"   stop-color="{P["purple"]}"/>
-    <stop offset="100%" stop-color="{P["pink"]}"/>
-  </linearGradient>
-  <linearGradient id="bgLg" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%"   stop-color="{P["bg2"]}"/>
-    <stop offset="100%" stop-color="#090d14"/>
-  </linearGradient>
-  <clipPath id="lgClip"><rect width="{W}" height="{H}" rx="15"/></clipPath>
-  {clip_defs}
+  <clipPath id="barc"><rect x="{bx}" y="84" width="{bw}" height="10" rx="5"/></clipPath>
 </defs>
-
-<rect width="{W}" height="{H}" rx="15" fill="url(#bgLg)"/>
-{_dot_bg(W, H, step=22, color=P["purple"])}
-<g clip-path="url(#lgClip)">{_scanline(W, H, P["purple"])}</g>
-{_animated_border(W, H, P["purple"])}
-{_corner_brackets(W, H, size=20, gap=10, color=P["purple"], t=2.3)}
-
-<text x="32" y="40" font-family="'Courier New',monospace" font-size="9.5" font-weight="700"
-  letter-spacing=".14em" fill="{P["dim"]}">// LANGUAGE MATRIX</text>
-<line x1="32" y1="50" x2="{W-32}" y2="50" stroke="{P["border"]}" stroke-width="1"/>
-<line x1="228" y1="58" x2="228" y2="{H-40}" stroke="{P["border"]}" stroke-width="1"/>
-<text x="{CX}" y="68" text-anchor="middle" font-family="'Courier New',monospace"
-  font-size="8.5" fill="{P["dim"]}">// SHARE</text>
-<text x="{bx0}" y="68" font-family="'Courier New',monospace" font-size="8.5" fill="{P["dim"]}">// BREAKDOWN</text>
-
-{segs}
-{bars}
-
-<line x1="32" y1="{H-34}" x2="{W-32}" y2="{H-34}" stroke="{P["border"]}" stroke-width="1"/>
-<text x="32" y="{H-16}" font-family="'Courier New',monospace" font-size="8" fill="{P["dim"]}">⟳ {now}</text>
-
-</svg>"""
+{_frame(W, H, "lc")}
+<text x="40" y="54" class="mono" font-size="13" letter-spacing="2.4" fill="{P["muted"]}">LANGUAGES</text>
+<text x="{W-40}" y="54" text-anchor="end" font-size="13" fill="{P["faint"]}">by code size · {d["repos"]} repos</text>
+<g clip-path="url(#barc)">{bar}</g>
+{rows}
+<text x="40" y="{H-26}" font-size="12" fill="{P["faint"]}">★ {d["stars"]} stars · {d["followers"]} followers · {d["prs"]} PRs &amp; {d["reviews"]} reviews this year</text>
+""")
 
 
-# ════════════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════════
+# RECENTLY SHIPPED  (590 × 320)
+# ═════════════════════════════════════════════════════════════════════════════
+def build_recent_svg(d: dict) -> str:
+    W, H = 590, 320
+    rows = ""
+    for i, r in enumerate(d["recent"]):
+        y = 104 + i * 52
+        lang = r.get("primaryLanguage") or {"name": "Markdown", "color": P["muted"]}
+        desc = r.get("description") or ""
+        sub = lang["name"] + (f" · {desc}" if desc else "")
+        rows += (
+            '<g>'
+            f'<circle cx="46" cy="{y-5}" r="5" fill="{lang["color"] or P["muted"]}"/>'
+            f'<text x="62" y="{y}" font-size="15" font-weight="600" fill="{P["text"]}">{escape(clip(r["name"], 34))}</text>'
+            f'<text x="{W-40}" y="{y}" text-anchor="end" class="mono" font-size="12" fill="{P["green"] if i == 0 else P["muted"]}">{ago(r["pushedAt"])}</text>'
+            f'<text x="62" y="{y+20}" font-size="12.5" fill="{P["muted"]}">{escape(clip(sub, 68))}</text></g>'
+        )
+    return _card(W, H, f"""
+<defs>
+  <style>
+    .mono {{ font-family:{MONO} }}
+  </style>
+</defs>
+{_frame(W, H, "rc")}
+<text x="40" y="54" class="mono" font-size="13" letter-spacing="2.4" fill="{P["muted"]}">RECENTLY SHIPPED</text>
+<text x="{W-40}" y="54" text-anchor="end" font-size="13" fill="{P["faint"]}">last push wins</text>
+<path d="M40 72H{W-40}" stroke="{P["border"]}"/>
+{rows}
+""")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Main
-# ════════════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════════
 def main():
     print(f"[INFO] Fetching @{USERNAME} …")
     data = fetch_data()
-    print(f"[INFO] commits={data['commits']} stars={data['stars']} "
-          f"streak={data['cur_streak']}d langs={len(data['langs'])}")
+    now = datetime.now(IST)
+    print(f"[INFO] total={data['total']} streak={data['cur_streak']}d "
+          f"active={data['active']}/{data['n_days']} langs={len(data['langs'])}")
 
     os.makedirs(OUT_DIR, exist_ok=True)
-
     outputs = {
-        "banner.svg": build_banner_svg(),
-        "stats.svg":  build_stats_svg(data),
+        "banner.svg": build_banner_svg(data, now),
+        "stats.svg":  build_stats_svg(data, now),
         "langs.svg":  build_langs_svg(data),
+        "recent.svg": build_recent_svg(data),
     }
     for name, svg in outputs.items():
         path = os.path.join(OUT_DIR, name)
@@ -568,7 +619,6 @@ def main():
             f.write(svg)
         print(f"[OK]  {path}")
 
-    print("[DONE] All SVGs generated.")
 
 if __name__ == "__main__":
     main()

@@ -1,296 +1,118 @@
 <!--
-  Guru Kannan - GitHub Profile
-  Live cards are refreshed by GitHub Actions every 30 minutes.
+
+   ██████╗ ██╗   ██╗██████╗ ██╗   ██╗
+  ██╔════╝ ██║   ██║██╔══██╗██║   ██║
+  ██║  ███╗██║   ██║██████╔╝██║   ██║
+  ██║   ██║██║   ██║██╔══██╗██║   ██║
+  ╚██████╔╝╚██████╔╝██║  ██║╚██████╔╝
+   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝
+
+  🥚 Egg 1/12 — you opened the source. Respect, fellow view-source enjoyer.
+
+  Everything on this page is rendered by .github/scripts/generate_stats.py
+  and refreshed by GitHub Actions every 30 minutes. No third-party stat cards.
+
 -->
 
 <div align="center">
 
-<img src="./assets/banner.svg" width="100%" alt="Guru Kannan - System Engineer, Full Stack Developer, Tech Educator" />
+<img src="./assets/banner.svg" width="100%" alt="Guru Kannan — backend engineer working with Java, Spring Boot and Kafka" title="🥚 Egg 2/12 — you hovered. Curiosity compiles. (Keep watching this banner.)" />
 
 <br/>
 
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=800&size=18&duration=2400&pause=700&color=58A6FF&background=00000000&center=true&vCenter=true&width=900&height=48&lines=Java+17+%2B+Spring+Boot+3+%2B+Microservices;Kafka+%2B+Solace+%2B+Event-Driven+Systems;React+%2B+Firebase+%2B+Production+Dashboards;Teaching+Java%2C+DSA%2C+Full+Stack+for+real+jobs)](https://git.io/typing-svg)
+<a href="https://linkedin.com/in/gurukannan0922"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn" /></a>
+<a href="mailto:gurukannan0922@gmail.com"><img src="https://img.shields.io/badge/Email-EA4335?style=flat-square&logo=gmail&logoColor=white" alt="Email" /></a>
+<a href="https://github.com/gurukannan22?tab=repositories&sort=pushed"><img src="https://img.shields.io/badge/Repositories-181717?style=flat-square&logo=github&logoColor=white" alt="Repositories" /></a>
+<img src="https://komarev.com/ghpvc/?username=gurukannan22&label=profile%20views&color=21262D&style=flat-square" alt="Profile views" title="Hi, visitor. You are now part of this number." />
 
-<a href="https://github.com/gurukannan22?tab=followers">
-  <img src="https://img.shields.io/github/followers/gurukannan22?label=Followers&style=for-the-badge&color=0D1117&labelColor=3FB950&logo=github&logoColor=white" alt="GitHub followers" />
-</a>
-<a href="https://github.com/gurukannan22?tab=repositories">
-  <img src="https://img.shields.io/github/stars/gurukannan22?label=Stars&style=for-the-badge&color=0D1117&labelColor=F0B429&logo=github&logoColor=white" alt="GitHub stars" />
-</a>
-<a href="https://komarev.com/ghpvc/?username=gurukannan22">
-  <img src="https://komarev.com/ghpvc/?username=gurukannan22&label=Profile%20Views&color=58A6FF&style=for-the-badge&abbreviated=true" alt="Profile views" />
-</a>
-<a href="mailto:gurukannan0922@gmail.com">
-  <img src="https://img.shields.io/badge/Open%20To-Collabs%20%7C%20Mentoring%20%7C%20Backend%20Work-0D1117?style=for-the-badge&labelColor=BC8CFF" alt="Open to collaborations" />
-</a>
-<img src="https://img.shields.io/badge/Data%20Refresh-Every%2030%20Minutes-0D1117?style=for-the-badge&labelColor=1F6FEB" alt="Profile data refresh cadence" />
+</div>
 
 <br/>
 
-Modern backend systems, product dashboards, and teaching content with less noise and better spacing.
+I build backend systems in **Java and Spring Boot**: auth, REST APIs, and event-driven pipelines on **Kafka and Solace**, plus the **React** dashboards that sit on top of them. I also teach Java, DSA and full-stack development to students getting ready for their first engineering job.
 
-<a href="#live-dashboard">Live Dashboard</a> ·
-<a href="#what-i-build">What I Build</a> ·
-<a href="#tech-os">Tech OS</a> ·
-<a href="#featured-work">Featured Work</a> ·
-<a href="#connect">Connect</a>
+<img src="./assets/stats.svg" width="100%" alt="Contribution activity over the last 12 months: totals, streaks and a full contribution heatmap" title="Live from the GitHub API. Read the bottom-right line every day; it changes." />
 
-</div>
-
----
-
-## Live Dashboard
+<p>
+  <img src="./assets/langs.svg" width="49%" alt="Languages by code size across my repositories" title="Yes, HTML is in there. No, we won't argue about whether it counts." />
+  <img src="./assets/recent.svg" width="49%" alt="My most recently pushed repositories" title="If the top one says 'h ago', I'm probably still typing." />
+</p>
 
 <div align="center">
 
-<img src="./assets/stats.svg" width="100%" alt="Live GitHub statistics dashboard" />
+<br/>
 
-</div>
-
-<table cellspacing="0" cellpadding="0">
-<tr>
-<td width="48%" valign="top">
-
-<img src="./assets/langs.svg" width="100%" alt="Language matrix" />
-
-</td>
-<td width="4%">&nbsp;</td>
-<td width="48%" valign="top">
-
-<img src="https://streak-stats.demolab.com/?user=gurukannan22&theme=github-dark-blue&hide_border=true&background=0D1117&ring=58A6FF&fire=F0B429&currStreakLabel=58A6FF&sideLabels=7D8590&dates=7D8590&stroke=21262D&type=svg" width="100%" alt="GitHub streak stats" />
-
-</td>
-</tr>
-</table>
-
-<div align="center">
-
-[![Contribution Graph](https://github-readme-activity-graph.vercel.app/graph?username=gurukannan22&bg_color=0D1117&color=58A6FF&line=3FB950&point=F0B429&area=true&area_color=1F6FEB&hide_border=true&custom_title=Contribution%20Signal%20-%20Last%20365%20Days&radius=8&theme=github-compact)](https://github.com/ashutosh00710/github-readme-activity-graph)
-
-</div>
-
----
-
-## What I Build
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### Production Backends
-
-I build Java and Spring Boot systems with authentication, service boundaries, database design, REST APIs, and event-driven flows that are meant to survive real users.
-
-```java
-record Stack(
-    String backend,
-    String messaging,
-    String cloud,
-    String principle
-) {
-    static Stack current() {
-        return new Stack(
-            "Java 17 + Spring Boot 3 + Security",
-            "Kafka + Solace PubSub+",
-            "AWS + Firebase + Docker",
-            "Strong fundamentals scale better"
-        );
-    }
-}
-```
-
-</td>
-<td width="50%" valign="top">
-
-### Learning Systems
-
-I turn complex engineering topics into placement-focused roadmaps, live workshops, and project-based learning paths for Java, DSA, frontend, and full stack development.
-
-```txt
-now shipping:
-  - CRM modules and invoice flows
-  - Event-driven integration patterns
-  - Java + DSA teaching tracks
-  - AWS SAA preparation
-```
-
-</td>
-</tr>
-</table>
-
-<div align="center">
-
-<img src="./assets/mission-control.svg" width="100%" alt="Current focus dashboard" />
-
-</div>
-
----
-
-## Tech OS
-
-<table>
-<tr>
-<td width="33%" valign="top">
-
-### Backend
-
-![Java](https://img.shields.io/badge/Java-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat-square&logo=springboot&logoColor=white)
-![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white)
-![Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=flat-square&logo=apachekafka&logoColor=white)
-![Solace](https://img.shields.io/badge/Solace-00C895?style=flat-square&logoColor=white)
-![REST](https://img.shields.io/badge/REST_APIs-FF6C37?style=flat-square&logo=postman&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
-
-</td>
-<td width="33%" valign="top">
-
-### Frontend
-
-![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
-![Bootstrap](https://img.shields.io/badge/Bootstrap-7952B3?style=flat-square&logo=bootstrap&logoColor=white)
-
-</td>
-<td width="33%" valign="top">
-
-### Cloud and Data
-
-![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=FF9900)
-![GCP](https://img.shields.io/badge/GCP-4285F4?style=flat-square&logo=googlecloud&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)
-
-</td>
-</tr>
-</table>
-
-<div align="center">
-
-| Domain | Current Level | Active Focus |
-|:---|:---:|:---|
-| Java and Spring Boot | `█████████████░` 90% | Security, patterns, clean service design |
-| React and Frontend | `███████████░░░` 76% | Component architecture and dashboard UX |
-| SQL and Firestore | `███████████░░░` 74% | Schema design and query performance |
-| Auth and Security | `██████████░░░░` 68% | JWT, OAuth2, Spring Security |
-| AWS Cloud | `████████░░░░░░` 58% | SAA track, VPC, ECS, IAM, RDS |
-| Event-Driven Systems | `████████░░░░░░` 55% | Kafka, Solace, DLQ, topic design |
-
-</div>
-
----
-
-## Featured Work
-
-<div align="center">
-
-<a href="https://github.com/gurukannan22/Java-Learning">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=gurukannan22&repo=Java-Learning&theme=github_dark&hide_border=true&bg_color=0D1117&title_color=58A6FF&icon_color=F0B429&text_color=C9D1D9" alt="Java Learning repository" />
-</a>
-<a href="https://github.com/gurukannan22/frontend-learning">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=gurukannan22&repo=frontend-learning&theme=github_dark&hide_border=true&bg_color=0D1117&title_color=58A6FF&icon_color=F0B429&text_color=C9D1D9" alt="Frontend Learning repository" />
-</a>
-<a href="https://github.com/gurukannan22/cybersecurity-learning">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=gurukannan22&repo=cybersecurity-learning&theme=github_dark&hide_border=true&bg_color=0D1117&title_color=58A6FF&icon_color=F0B429&text_color=C9D1D9" alt="Cybersecurity Learning repository" />
-</a>
-<a href="https://github.com/gurukannan22/magic-link-service">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=gurukannan22&repo=magic-link-service&theme=github_dark&hide_border=true&bg_color=0D1117&title_color=58A6FF&icon_color=F0B429&text_color=C9D1D9" alt="Magic Link Service repository" />
-</a>
-
-</div>
-
-<table>
-<tr>
-<td width="33%" valign="top">
-
-### CRM Engineering
-
-Lead, finance, trainer, invoice, and reporting flows for Ednue platforms using React, Firebase, and Spring-oriented backend design.
-
-</td>
-<td width="33%" valign="top">
-
-### Backend Security
-
-Magic links, JWT flows, auth modules, and secure service boundaries with Spring Security and production-friendly API contracts.
-
-</td>
-<td width="33%" valign="top">
-
-### Teaching Repos
-
-Structured Java, frontend, cybersecurity, and full stack notes built for students who need clarity, repetition, and projects.
-
-</td>
-</tr>
-</table>
-
----
-
-## Deep Metrics
-
-<div align="center">
-
-<img src="https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=gurukannan22&theme=github_dark" width="99%" alt="Profile summary details" />
+<img src="https://skillicons.dev/icons?i=java,spring,kafka,react,ts,js,tailwind,aws,gcp,docker,firebase,mysql,githubactions,linux&perline=14" alt="Java, Spring, Kafka, React, TypeScript, JavaScript, Tailwind, AWS, GCP, Docker, Firebase, MySQL, GitHub Actions, Linux" title="Ctrl+C, Ctrl+V certified. (Solace is also here, it just didn't have an icon.)" />
 
 <br/><br/>
-
-<img src="https://github-profile-summary-cards.vercel.app/api/cards/repos-per-language?username=gurukannan22&theme=github_dark" width="32%" alt="Repos per language" />
-<img src="https://github-profile-summary-cards.vercel.app/api/cards/most-commit-language?username=gurukannan22&theme=github_dark" width="32%" alt="Most commit language" />
-<img src="https://github-profile-summary-cards.vercel.app/api/cards/productive-time?username=gurukannan22&theme=github_dark&utcOffset=5.5" width="32%" alt="Productive time" />
-
-</div>
-
----
-
-## Contribution Trail
-
-<div align="center">
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-dark.svg" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-light.svg" />
-  <img alt="Contribution snake animation" src="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-dark.svg" width="100%" />
+  <img alt="A snake eating my contribution graph" src="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-dark.svg" width="100%" title="It eats one green square per commit. Feed it." />
 </picture>
 
 </div>
 
----
+<details>
+<summary><b>⚠️ do not open this</b></summary>
 
-## Connect
+<br/>
+
+```console
+$ sudo rm -rf /bugs
+[sudo] password for guru: ********
+rm: cannot remove '/bugs': they are features now
+
+$ git blame production.log
+fatal: it was you. it is always you.
+
+$ cat /dev/motivation
+☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕ (buffer overflow)
+
+$ echo "🥚 Egg 10/12 — you were told not to open this."
+```
+
+There is also <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" title="🥚 Egg 11/12 — you know exactly where this goes.">📦 free-premium-source-code.zip</a> for you. No strings attached.
+
+</details>
+
+<details>
+<summary><b>🗺️ egg hunt: 12 hidden on this page. How many can you find?</b></summary>
+
+<br/>
+
+| # | Hint |
+|:-:|:-----|
+| 1 | Real engineers read the source. |
+| 2 | Point at things. |
+| 3 | Check the hash of my latest commit in the terminal. What's it made of? |
+| 4 | Watch the top of the banner for about a minute. Something is invading. |
+| 5 | The faint 1s and 0s under the banner spell something out. |
+| 6 | The bottom-right corner of the banner has a famous cheat code. |
+| 7 | My status chip changes with the hour in IST. Visit at 3 a.m. Visit on a Friday afternoon. |
+| 8 | Some days of the year look different. Try Halloween, April 1st, the 256th day, or December. |
+| 9 | The activity card has a new fortune every day. |
+| 10 | Some warnings should be ignored. |
+| 11 | Free source code is never free. |
+| 12 | Switch GitHub between light and dark theme and look at the footer. |
+
+Found all twelve? Tell me on [LinkedIn](https://linkedin.com/in/gurukannan0922). You've earned bragging rights.
+
+</details>
 
 <div align="center">
 
-<a href="https://linkedin.com/in/gurukannan0922">
-  <img src="https://img.shields.io/badge/LinkedIn-gurukannan0922-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" />
-</a>
-<a href="https://github.com/gurukannan22">
-  <img src="https://img.shields.io/badge/GitHub-gurukannan22-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
-</a>
-<a href="mailto:gurukannan0922@gmail.com">
-  <img src="https://img.shields.io/badge/Email-gurukannan0922-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
-</a>
+<br/>
 
-<br/><br/>
+<img src="https://img.shields.io/badge/🌙_dark_mode-correct_choice-21262D?style=flat-square#gh-dark-mode-only" alt="Dark mode: correct choice" title="🥚 Egg 12/12 — dark mode spotted. Now try light mode." />
+<img src="https://img.shields.io/badge/☀️_light_mode-bold_choice-F0B429?style=flat-square#gh-light-mode-only" alt="Light mode: bold choice" title="🥚 Egg 12/12 — light mode spotted. Your eyes are braver than mine." />
 
-```txt
-Open channels:
-  - backend collaboration
-  - Java / DSA mentoring
-  - full stack project discussions
-  - cloud and system design learning
-
-Motto:
-  Strong fundamentals scale better than shortcuts.
-```
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,15,20,24&height=110&section=footer&text=terminal%20open.%20still%20shipping.&fontSize=15&fontColor=58A6FF&fontAlignY=62&animation=fadeIn" width="100%" alt="Footer wave" />
+<sub>Strong fundamentals scale better than shortcuts. · Built with Python, SVG, and too much ☕</sub>
 
 </div>
+
+<!--
+  Still here? Here's a bonus fact: the hash "c0ffee5" is fake, but the coffee is real.
+  Achievement unlocked: scrolled to the bottom of a README's source. 🏆
+-->
