@@ -53,35 +53,3 @@ jobs:
           git diff --cached --quiet || git commit -m "chore: auto-update stats SVGs [skip ci]"
           git pull --rebase origin main
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/gurukannan22/gurukannan22.git HEAD:main
-
-  # ──────────────────────────────────────────────────────────────
-  # Job 2 — Regenerate contribution snake animation
-  # ──────────────────────────────────────────────────────────────
-  generate-snake:
-    name: Generate Contribution Snake
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate Snake SVG (dark + light)
-        uses: Platane/snk/svg-only@v3
-        with:
-          github_user_name: gurukannan22
-          outputs: |
-            dist/snake-dark.svg?palette=github-dark
-            dist/snake-light.svg
-
-      - name: Deploy to output branch
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch:         output
-          folder:         dist
-          token:          ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: auto-update snake animation [skip ci]"
-          single-commit:  true
-          clean:          true

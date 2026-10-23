@@ -23,7 +23,7 @@
 <a href="https://linkedin.com/in/gurukannan0922"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn" /></a>
 <a href="mailto:gurukannan0922@gmail.com"><img src="https://img.shields.io/badge/Email-EA4335?style=flat-square&logo=gmail&logoColor=white" alt="Email" /></a>
 <a href="https://github.com/gurukannan22?tab=repositories&sort=pushed"><img src="https://img.shields.io/badge/Repositories-181717?style=flat-square&logo=github&logoColor=white" alt="Repositories" /></a>
-<img src="https://komarev.com/ghpvc/?username=gurukannan22&label=profile%20views&color=21262D&style=flat-square" alt="Profile views" title="Hi, visitor. You are now part of this number." />
+<img src="https://visitor-badge.laobi.icu/badge?page_id=gurukannan22.gurukannan22&left_text=profile%20views&left_color=%2321262D&right_color=%23238636" alt="Profile views" title="Hi, visitor. You are now part of this number." />
 
 </div>
 
@@ -44,66 +44,11 @@ I build backend systems in **Java and Spring Boot**: auth, REST APIs, and event-
 
 <img src="https://skillicons.dev/icons?i=java,spring,kafka,react,ts,js,tailwind,aws,gcp,docker,firebase,mysql,githubactions,linux&perline=14" alt="Java, Spring, Kafka, React, TypeScript, JavaScript, Tailwind, AWS, GCP, Docker, Firebase, MySQL, GitHub Actions, Linux" title="Ctrl+C, Ctrl+V certified. (Solace is also here, it just didn't have an icon.)" />
 
+<br/>
+
+<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"><img src="./assets/footer.svg" width="100%" alt="My secrets folder and a hint for the easter-egg hunt" title="🥚 Egg 10/12 — you found my secrets folder. Go on, click it." /></a>
+
 <br/><br/>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-light.svg" />
-  <img alt="A snake eating my contribution graph" src="https://raw.githubusercontent.com/gurukannan22/gurukannan22/output/snake-dark.svg" width="100%" title="It eats one green square per commit. Feed it." />
-</picture>
-
-</div>
-
-<details>
-<summary><b>⚠️ do not open this</b></summary>
-
-<br/>
-
-```console
-$ sudo rm -rf /bugs
-[sudo] password for guru: ********
-rm: cannot remove '/bugs': they are features now
-
-$ git blame production.log
-fatal: it was you. it is always you.
-
-$ cat /dev/motivation
-☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕☕ (buffer overflow)
-
-$ echo "🥚 Egg 10/12 — you were told not to open this."
-```
-
-There is also <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" title="🥚 Egg 11/12 — you know exactly where this goes.">📦 free-premium-source-code.zip</a> for you. No strings attached.
-
-</details>
-
-<details>
-<summary><b>🗺️ egg hunt: 12 hidden on this page. How many can you find?</b></summary>
-
-<br/>
-
-| # | Hint |
-|:-:|:-----|
-| 1 | Real engineers read the source. |
-| 2 | Point at things. |
-| 3 | Check the hash of my latest commit in the terminal. What's it made of? |
-| 4 | Watch the top of the banner for about a minute. Something is invading. |
-| 5 | The faint 1s and 0s under the banner spell something out. |
-| 6 | The bottom-right corner of the banner has a famous cheat code. |
-| 7 | My status chip changes with the hour in IST. Visit at 3 a.m. Visit on a Friday afternoon. |
-| 8 | Some days of the year look different. Try Halloween, April 1st, the 256th day, or December. |
-| 9 | The activity card has a new fortune every day. |
-| 10 | Some warnings should be ignored. |
-| 11 | Free source code is never free. |
-| 12 | Switch GitHub between light and dark theme and look at the footer. |
-
-Found all twelve? Tell me on [LinkedIn](https://linkedin.com/in/gurukannan0922). You've earned bragging rights.
-
-</details>
-
-<div align="center">
-
-<br/>
 
 <img src="https://img.shields.io/badge/🌙_dark_mode-correct_choice-21262D?style=flat-square#gh-dark-mode-only" alt="Dark mode: correct choice" title="🥚 Egg 12/12 — dark mode spotted. Now try light mode." />
 <img src="https://img.shields.io/badge/☀️_light_mode-bold_choice-F0B429?style=flat-square#gh-light-mode-only" alt="Light mode: bold choice" title="🥚 Egg 12/12 — light mode spotted. Your eyes are braver than mine." />

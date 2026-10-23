@@ -597,6 +597,74 @@ def build_recent_svg(d: dict) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# FOOTER  (1200 × 260) — the secrets folder + egg hunt
+# ═════════════════════════════════════════════════════════════════════════════
+HINTS = [
+    "Real engineers read the source.",
+    "Point at things. The images talk back.",
+    "What is my latest commit hash made of?",
+    "Watch the top of the banner for a minute.",
+    "The faint 1s and 0s under the banner say something.",
+    "A famous cheat code hides in the banner's corner.",
+    "My status chip changes with the hour. Try 3 a.m.",
+    "Visit on Halloween, April 1st or in December.",
+    "The activity card has a new fortune every day.",
+    "You're looking at it: my secrets folder.",
+    "Free source code is never free. Click this card.",
+    "Switch GitHub between light and dark themes.",
+]
+
+
+def build_footer_svg(now: datetime) -> str:
+    W, H = 1200, 260
+    tx, ty, tw, th = 32, 32, 680, 196
+    today = now.date().toordinal() % len(HINTS)
+    lines = [
+        ("$", "ls ~/secrets"),
+        ("", "free-premium-source-code.zip\u00a0\u00a0\u00a0bugs/\u00a0\u00a0\u00a0blame.log"),
+        ("$", "sudo rm -rf ~/secrets/bugs"),
+        ("", "rm: cannot remove 'bugs': they are features now"),
+        ("$", "git blame production.log"),
+        ("", "fatal: it was you. it is always you."),
+    ]
+    term = ""
+    for i, (kind, txt) in enumerate(lines):
+        body = (f'<tspan fill="{P["green"]}">❯</tspan> <tspan fill="{P["text"]}">{escape(txt)}</tspan>'
+                if kind == "$" else f'<tspan fill="{P["muted"]}">{escape(txt)}</tspan>')
+        term += f'<text x="{tx+24}" y="{ty+64 + i*22}" class="mono" font-size="14">{body}</text>'
+
+    eggs = "".join(
+        f'<ellipse cx="{752 + i*30}" cy="150" rx="8" ry="10.5" '
+        + (f'fill="{P["amber"]}"/>' if i == today else f'fill="none" stroke="{P["line"]}" stroke-width="1.5"/>')
+        for i in range(len(HINTS))
+    )
+    return _card(W, H, f"""
+<defs>
+  <style>
+    .mono {{ font-family:{MONO} }}
+    .glow {{ animation:glow 2.4s ease-in-out infinite }}
+    @keyframes glow {{ 50% {{ opacity:.45 }} }}
+    @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important }} }}
+  </style>
+</defs>
+{_frame(W, H, "fc")}
+<rect x="{tx}" y="{ty}" width="{tw}" height="{th}" rx="12" fill="{P["bg"]}" stroke="{P["line"]}"/>
+<path d="M{tx} {ty+36}h{tw}" stroke="{P["border"]}"/>
+<circle cx="{tx+22}" cy="{ty+18}" r="5.5" fill="#FF5F57"/>
+<circle cx="{tx+40}" cy="{ty+18}" r="5.5" fill="#FEBC2E"/>
+<circle cx="{tx+58}" cy="{ty+18}" r="5.5" fill="#28C840"/>
+<text x="{tx+tw/2}" y="{ty+22.5}" text-anchor="middle" class="mono" font-size="12" fill="{P["faint"]}">~/secrets — do not open</text>
+{term}
+
+<text x="752" y="62" class="mono" font-size="13" letter-spacing="2.4" fill="{P["muted"]}">EGG HUNT</text>
+<text x="752" y="116" font-size="48" font-weight="700" letter-spacing="-1" fill="{P["text"]}">12<tspan font-size="16" font-weight="400" letter-spacing="0" fill="{P["muted"]}" dx="10">eggs hidden on this page</tspan></text>
+<g class="glow">{eggs}</g>
+<text x="752" y="196" class="mono" font-size="12" fill="{P["amber"]}">today's hint · #{today + 1}</text>
+<text x="752" y="220" font-size="14" fill="{P["soft"]}">{escape(HINTS[today])}</text>
+""")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Main
 # ═════════════════════════════════════════════════════════════════════════════
 def main():
@@ -612,6 +680,7 @@ def main():
         "stats.svg":  build_stats_svg(data, now),
         "langs.svg":  build_langs_svg(data),
         "recent.svg": build_recent_svg(data),
+        "footer.svg": build_footer_svg(now),
     }
     for name, svg in outputs.items():
         path = os.path.join(OUT_DIR, name)

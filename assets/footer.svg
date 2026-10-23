@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif">
+
+<defs>
+  <style>
+    .mono { font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace }
+    .glow { animation:glow 2.4s ease-in-out infinite }
+    @keyframes glow { 50% { opacity:.45 } }
+    @media (prefers-reduced-motion: reduce) { * { animation:none !important } }
+  </style>
+</defs>
+<clipPath id="fc"><rect width="1200" height="260" rx="16"/></clipPath><rect width="1200" height="260" rx="16" fill="#0D1117"/><rect x=".5" y=".5" width="1199" height="259" rx="15.5" fill="none" stroke="#21262D"/>
+<rect x="32" y="32" width="680" height="196" rx="12" fill="#0A0D12" stroke="#30363D"/>
+<path d="M32 68h680" stroke="#21262D"/>
+<circle cx="54" cy="50" r="5.5" fill="#FF5F57"/>
+<circle cx="72" cy="50" r="5.5" fill="#FEBC2E"/>
+<circle cx="90" cy="50" r="5.5" fill="#28C840"/>
+<text x="372.0" y="54.5" text-anchor="middle" class="mono" font-size="12" fill="#484F58">~/secrets — do not open</text>
+<text x="56" y="96" class="mono" font-size="14"><tspan fill="#3FB950">❯</tspan> <tspan fill="#E6EDF3">ls ~/secrets</tspan></text><text x="56" y="118" class="mono" font-size="14"><tspan fill="#8B949E">free-premium-source-code.zip   bugs/   blame.log</tspan></text><text x="56" y="140" class="mono" font-size="14"><tspan fill="#3FB950">❯</tspan> <tspan fill="#E6EDF3">sudo rm -rf ~/secrets/bugs</tspan></text><text x="56" y="162" class="mono" font-size="14"><tspan fill="#8B949E">rm: cannot remove &#x27;bugs&#x27;: they are features now</tspan></text><text x="56" y="184" class="mono" font-size="14"><tspan fill="#3FB950">❯</tspan> <tspan fill="#E6EDF3">git blame production.log</tspan></text><text x="56" y="206" class="mono" font-size="14"><tspan fill="#8B949E">fatal: it was you. it is always you.</tspan></text>
+
+<text x="752" y="62" class="mono" font-size="13" letter-spacing="2.4" fill="#8B949E">EGG HUNT</text>
+<text x="752" y="116" font-size="48" font-weight="700" letter-spacing="-1" fill="#E6EDF3">12<tspan font-size="16" font-weight="400" letter-spacing="0" fill="#8B949E" dx="10">eggs hidden on this page</tspan></text>
+<g class="glow"><ellipse cx="752" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="782" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="812" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="842" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="872" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="902" cy="150" rx="8" ry="10.5" fill="#F0B429"/><ellipse cx="932" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="962" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="992" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="1022" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="1052" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/><ellipse cx="1082" cy="150" rx="8" ry="10.5" fill="none" stroke="#30363D" stroke-width="1.5"/></g>
+<text x="752" y="196" class="mono" font-size="12" fill="#F0B429">today's hint · #6</text>
+<text x="752" y="220" font-size="14" fill="#C9D1D9">A famous cheat code hides in the banner&#x27;s corner.</text>
+
+</svg>
