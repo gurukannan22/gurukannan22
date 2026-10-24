@@ -38,6 +38,9 @@ P = {
 }
 HEAT = ["#161B22", "#0E4429", "#006D32", "#26A641", "#39D353"]
 SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif"
+# Wishes come in Tamil, Malayalam, Telugu, Hindi and Punjabi: name fonts that cover them.
+WISH_FONT = ("'Noto Sans Tamil','Tamil Sangam MN','Nirmala UI','Noto Sans Malayalam','Noto Sans Telugu',"
+             "'Noto Sans Devanagari','Noto Sans Gurmukhi'," + SANS)
 MONO = "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace"
 
 FORTUNES = [
@@ -308,6 +311,8 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
     status, s_col = (scenes.festival_status(festival), P["amber"]) if festival else status_for(now)
     scene = scenes.render(now, festival, wx)
     weather = escape(scenes.weather_label(wx)) if wx else ""
+    wish    = scenes.festival_wish(festival) if festival else None
+    wish_en = scenes.festival_wish_en(festival) if festival else None
     chip_w = text_w(status, 13, mono=True) + 46
     april = (now.month, now.day) == (4, 1)
 
@@ -319,8 +324,8 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
     lines = [
         ("$", "whoami"),
         ("", "guru — backend engineer & tech educator"),
-        ("$", "cat ~/.stack"),
-        ("", "java · spring boot · kafka · react · aws"),
+        *((("$", "echo $WISHES"), ("wish", wish_en)) if wish_en else
+          (("$", "cat ~/.stack"), ("", "java · spring boot · kafka · react · aws"))),
         ("$", "git log -1 --oneline"),
         ("hash", f"feat: {fmt(d['total'])} contributions in 12 months"),
     ]
@@ -329,6 +334,8 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
         y = term_y + 74 + i * 25
         if kind == "$":
             body = f'<tspan fill="{P["green"]}">❯</tspan> <tspan fill="{P["text"]}">{escape(txt)}</tspan>'
+        elif kind == "wish":
+            body = f'<tspan fill="{P["amber"]}">{escape(clip(txt, 46))}</tspan>'
         elif kind == "hash":
             body = f'<tspan fill="{P["amber"]}">c0ffee5</tspan> <tspan fill="{P["muted"]}">{escape(txt)}</tspan>'
         else:
@@ -364,6 +371,10 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
     <stop offset="0%" stop-color="{P["blue"]}" stop-opacity=".16"/>
     <stop offset="100%" stop-color="{P["blue"]}" stop-opacity="0"/>
   </radialGradient>
+  <linearGradient id="wishG" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#FFD43B"/>
+    <stop offset="100%" stop-color="#FF8787"/>
+  </linearGradient>
   <linearGradient id="nameG" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0%" stop-color="#FFFFFF"/>
     <stop offset="100%" stop-color="{P["indigo"]}"/>
@@ -389,7 +400,8 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
 </g>
 <g>
   <text x="64" y="204" font-size="22" font-weight="500" fill="{P["soft"]}">Backend engineer · Java · Spring Boot · Kafka</text>
-  <text x="64" y="236" font-size="16" fill="{P["muted"]}">Building production systems by day, teaching fundamentals by night.</text>
+  {f'<text x="64" y="237" font-size="18" font-weight="600" fill="url(#wishG)" font-family="{WISH_FONT}">{escape(wish)}</text>' if wish else
+   f'<text x="64" y="236" font-size="16" fill="{P["muted"]}">Building production systems by day, teaching fundamentals by night.</text>'}
 </g>
 <g>
   <rect x="64" y="258" width="{chip_w:.0f}" height="30" rx="15" fill="{s_col}" fill-opacity=".1" stroke="{s_col}" stroke-opacity=".45"/>

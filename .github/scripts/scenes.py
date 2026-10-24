@@ -8,8 +8,10 @@ Picks what the banner should look like right now:
      builds up to the day instead of appearing on it.
   2. Otherwise, the live weather in WEATHER_CITY (Open-Meteo, no API key).
 
-Indian festival dates move every year with the lunar calendar, so they come
-from Google's public Indian-holidays calendar, with a built-in fallback table.
+Indian festival dates move every year with the lunar calendar. Pan-Indian ones
+come from Google's public Indian-holidays calendar; Tamil festivals (Bhogi,
+Thaipusam, Karthigai Deepam, ...) aren't in it, so they come from TAMIL_DATES.
+Every festival also carries a wish in its own language, shown on the banner.
 
 Every scene draws into a 1200 × 350 banner. The terminal covers x 704–1144,
 y 46–284; the column x 570–690 and the strip y 296–334 are free for props.
@@ -17,6 +19,7 @@ y 46–284; the column x 570–690 and the strip y 296–334 are free for props.
 
 import json, math, os, random, re, sys, urllib.request
 from datetime import date, datetime, timedelta
+from typing import NamedTuple
 
 W, H = 1200, 350
 COL = 630  # centre of the free column between the intro text and the terminal
@@ -31,58 +34,110 @@ LON  = float(os.environ.get("WEATHER_LON", "80.2707"))
 # ═════════════════════════════════════════════════════════════════════════════
 # Festival calendar
 # ═════════════════════════════════════════════════════════════════════════════
-# key: (title, scene, lead days, days after, "MM-DD" if fixed else ICS name,
-#       countdown flavour, greeting on the day)
+class Fest(NamedTuple):
+    title: str
+    scene: str
+    lead: int     # days before the festival that the scene starts showing
+    after: int    # days after it stays up
+    when: tuple   # date sources, tried together: "MM-DD", "tamil:<key>", or an ICS holiday name
+    prep: str     # countdown flavour for the status chip
+    greet: str    # status chip on the day
+    wish: str     # the wish line, in the festival's own language
+    wish_en: str  # ...and in English
+
+
+# Order matters only for ties (two festivals on the same day): earlier wins.
 FESTIVALS = {
-    "diwali":      ("Diwali", "diwali", 10, 1, "diwali/deepavali",
-                    "stocking up on diyas", "happy diwali — lamps lit, builds green"),
-    "pongal":      ("Pongal", "pongal", 7, 2, "pongal",
-                    "sugarcane secured", "pongalo pongal! — kites up, bugs down"),
-    "holi":        ("Holi", "holi", 7, 1, "holi",
-                    "colours loaded", "happy holi — merging every colour into main"),
-    "onam":        ("Onam", "onam", 7, 1, "onam",
-                    "pookalam in progress", "happy onam — pookalam compiled"),
-    "ganesh":      ("Ganesh Chaturthi", "ganesh", 7, 1, "ganesh chaturthi",
-                    "pandal going up", "ganpati bappa morya — obstacles removed"),
-    "dussehra":    ("Dussehra", "navratri", 10, 0, "dussehra",
-                    "navratri nights on", "happy dussehra — good beats evil (and bugs)"),
-    "eid":         ("Eid", "eid", 7, 1, "ramzan id",
-                    "moon-watch on", "eid mubarak — peace & clean builds"),
-    "bakrid":      ("Bakrid", "eid", 5, 1, "bakrid",
-                    "lanterns up", "eid al-adha mubarak"),
-    "rakhi":       ("Raksha Bandhan", "petals", 3, 0, "raksha bandhan",
-                    "rakhis ready", "happy raksha bandhan"),
-    "janmashtami": ("Janmashtami", "petals", 3, 0, "janmashtami",
-                    "butter pots hung", "happy janmashtami"),
-    "ugadi":       ("Ugadi", "toran", 3, 0, "ugadi",
-                    "mango leaves up", "happy ugadi — fresh year, fresh branch"),
-    "shivaratri":  ("Maha Shivaratri", "night", 2, 0, "maha shivaratri",
-                    "all-nighter planned", "om namah shivaya — all-night build"),
-    "gurpurab":    ("Guru Nanak Jayanti", "diyas", 2, 0, "guru nanak jayanti",
-                    "lamps ready", "happy gurpurab"),
-    "puthandu":    ("Tamil New Year", "toran", 3, 0, "04-14",
-                    "kolam drawn", "puthandu vazhthukal!"),
-    "republic":    ("Republic Day", "tricolor", 3, 0, "01-26",
-                    "flags up", "happy republic day — jai hind"),
-    "independence":("Independence Day", "tricolor", 4, 0, "08-15",
-                    "flags up", "happy independence day — jai hind"),
-    "gandhi":      ("Gandhi Jayanti", "tricolor", 1, 0, "10-02",
-                    "be the change", "be the change you wish to see in the codebase"),
-    "christmas":   ("Christmas", "christmas", 10, 1, "12-25",
-                    "decking the halls", "merry christmas — merging gifts into main"),
-    "newyear":     ("New Year", "newyear", 4, 1, "01-01",
-                    "final sprint of the year", "happy new year — new year, new bugs"),
-    "halloween":   ("Halloween", "halloween", 7, 0, "10-31",
-                    "the spiders are moving in", "happy halloween — haunted by legacy code"),
-    "valentine":   ("Valentine's Day", "hearts", 1, 0, "02-14",
-                    "git commit -m \"♥\"", "in a committed relationship (with git)"),
+    # ── Tamil Nadu ───────────────────────────────────────────────────────────
+    "bhogi":       Fest("Bhogi", "bhogi", 0, 0, ("tamil:bhogi",), "",
+                        "bhogi — out with the old code", "இனிய போகி நல்வாழ்த்துகள்", "happy bhogi"),
+    "pongal":      Fest("Thai Pongal", "pongal", 7, 0, ("tamil:pongal", "pongal"), "sugarcane secured",
+                        "pongalo pongal! — kites up, bugs down", "இனிய பொங்கல் நல்வாழ்த்துகள்", "happy pongal"),
+    "mattu":       Fest("Mattu Pongal", "pongal", 0, 0, ("tamil:mattu",), "",
+                        "mattu pongal — thank the ones who carry the load", "இனிய மாட்டுப் பொங்கல் நல்வாழ்த்துகள்", "happy mattu pongal"),
+    "kaanum":      Fest("Kaanum Pongal", "pongal", 0, 0, ("tamil:kaanum",), "",
+                        "kaanum pongal — out with family, laptop closed", "இனிய காணும் பொங்கல் நல்வாழ்த்துகள்", "happy kaanum pongal"),
+    "thaipusam":   Fest("Thaipusam", "vel", 3, 0, ("tamil:thaipusam",), "kavadi ready",
+                        "vetrivel muruganukku arogara!", "இனிய தைப்பூசத் திருநாள் நல்வாழ்த்துகள்", "happy thaipusam"),
+    "masimagam":   Fest("Masi Magam", "river", 2, 0, ("tamil:masimagam",), "headed to the shore",
+                        "masi magam — a holy dip, a clean slate", "இனிய மாசி மகத் திருநாள் நல்வாழ்த்துகள்", "happy masi magam"),
+    "panguni":     Fest("Panguni Uthiram", "wedding", 3, 0, ("tamil:panguni",), "temple bells ringing",
+                        "panguni uthiram — celestial weddings today", "இனிய பங்குனி உத்திரத் திருநாள் நல்வாழ்த்துகள்", "happy panguni uthiram"),
+    "puthandu":    Fest("Tamil New Year", "toran", 3, 0, ("04-14",), "kolam drawn",
+                        "puthandu vazhthukal! — fresh year, fresh branch", "இனிய தமிழ்ப் புத்தாண்டு நல்வாழ்த்துகள்", "happy tamil new year"),
+    "visakam":     Fest("Vaikasi Visakam", "vel", 3, 0, ("tamil:visakam",), "murugan's star rising",
+                        "vaikasi visakam — happy birthday, murugan", "இனிய வைகாசி விசாகத் திருநாள் நல்வாழ்த்துகள்", "happy vaikasi visakam"),
+    "aadi":        Fest("Aadi Perukku", "river", 2, 0, ("tamil:aadi",), "rivers rising",
+                        "aadi perukku — may everything overflow (except the stack)", "இனிய ஆடிப்பெருக்கு நல்வாழ்த்துகள்", "happy aadi perukku"),
+    "vinayagar":   Fest("Vinayagar Chathurthi", "ganesh", 7, 1, ("tamil:vinayagar", "ganesh chaturthi"), "kozhukattai steaming",
+                        "pillaiyar suzhi drawn — obstacles removed", "இனிய விநாயகர் சதுர்த்தி நல்வாழ்த்துகள்", "happy vinayagar chathurthi"),
+    "ayudha":      Fest("Ayudha Pooja", "navratri", 9, 0, ("tamil:ayudha", "maha navami"), "golu dolls on the steps",
+                        "ayudha pooja — even the laptop gets kumkum", "இனிய சரஸ்வதி பூஜை, ஆயுத பூஜை நல்வாழ்த்துகள்", "happy saraswathi & ayudha pooja"),
+    "vijayadashami": Fest("Vijayadashami", "navratri", 0, 0, ("tamil:vijayadashami", "dussehra"), "",
+                        "vijayadashami — good beats evil (and bugs)", "இனிய விஜயதசமி நல்வாழ்த்துகள்", "happy vijayadashami"),
+    "deepavali":   Fest("Deepavali", "diwali", 10, 1, ("tamil:deepavali", "naraka chaturdasi"), "stocking up on crackers",
+                        "happy deepavali — lamps lit, builds green", "இனிய தீபாவளி நல்வாழ்த்துகள்", "happy deepavali"),
+    "karthigai":   Fest("Karthigai Deepam", "deepam", 5, 0, ("tamil:karthigai",), "agal vilakku ready",
+                        "karthigai deepam — every lamp lit", "இனிய கார்த்திகை தீபத் திருநாள் நல்வாழ்த்துகள்", "happy karthigai deepam"),
+    # ── Across India ─────────────────────────────────────────────────────────
+    "holi":        Fest("Holi", "holi", 7, 1, ("holi",), "colours loaded",
+                        "happy holi — merging every colour into main", "होली की हार्दिक शुभकामनाएं", "happy holi"),
+    "onam":        Fest("Onam", "onam", 7, 1, ("onam",), "pookalam in progress",
+                        "happy onam — pookalam compiled", "ഓണാശംസകൾ", "happy onam"),
+    "eid":         Fest("Ramzan", "eid", 7, 1, ("ramzan id",), "moon-watch on",
+                        "eid mubarak — peace & clean builds", "இனிய ரம்ஜான் நல்வாழ்த்துகள்", "eid mubarak"),
+    "bakrid":      Fest("Bakrid", "eid", 5, 1, ("bakrid",), "lanterns up",
+                        "eid al-adha mubarak", "இனிய பக்ரீத் நல்வாழ்த்துகள்", "eid al-adha mubarak"),
+    "rakhi":       Fest("Raksha Bandhan", "petals", 3, 0, ("raksha bandhan",), "rakhis ready",
+                        "happy raksha bandhan", "रक्षाबंधन की शुभकामनाएं", "happy raksha bandhan"),
+    "krishna":     Fest("Krishna Jayanthi", "petals", 3, 0, ("janmashtami",), "little footprints drawn",
+                        "krishna jayanthi — uri adi time", "இனிய கிருஷ்ண ஜெயந்தி நல்வாழ்த்துகள்", "happy krishna jayanthi"),
+    "ugadi":       Fest("Ugadi", "toran", 3, 0, ("ugadi",), "mango leaves up",
+                        "happy ugadi — fresh year, fresh branch", "ఉగాది శుభాకాంక్షలు", "happy ugadi"),
+    "shivaratri":  Fest("Maha Shivaratri", "night", 2, 0, ("maha shivaratri",), "all-nighter planned",
+                        "om namah shivaya — all-night build", "இனிய மகா சிவராத்திரி நல்வாழ்த்துகள்", "happy maha shivaratri"),
+    "gurpurab":    Fest("Guru Nanak Jayanti", "diyas", 2, 0, ("guru nanak jayanti",), "lamps ready",
+                        "happy gurpurab", "ਗੁਰਪੁਰਬ ਦੀਆਂ ਲੱਖ ਲੱਖ ਵਧਾਈਆਂ", "happy gurpurab"),
+    "republic":    Fest("Republic Day", "tricolor", 3, 0, ("01-26",), "flags up",
+                        "happy republic day — jai hind", "இனிய குடியரசு தின நல்வாழ்த்துகள்", "happy republic day · jai hind"),
+    "independence":Fest("Independence Day", "tricolor", 4, 0, ("08-15",), "flags up",
+                        "happy independence day — jai hind", "இனிய சுதந்திர தின நல்வாழ்த்துகள்", "happy independence day · jai hind"),
+    "gandhi":      Fest("Gandhi Jayanti", "tricolor", 1, 0, ("10-02",), "be the change",
+                        "be the change you wish to see in the codebase", "", "remembering bapu on gandhi jayanti"),
+    # ── Worldwide ────────────────────────────────────────────────────────────
+    "christmas":   Fest("Christmas", "christmas", 10, 1, ("12-25",), "decking the halls",
+                        "merry christmas — merging gifts into main", "இனிய கிறிஸ்துமஸ் நல்வாழ்த்துகள்", "merry christmas"),
+    "newyear":     Fest("New Year", "newyear", 4, 1, ("01-01",), "final sprint of the year",
+                        "happy new year — new year, new bugs", "இனிய ஆங்கிலப் புத்தாண்டு நல்வாழ்த்துகள்", "happy new year"),
+    "halloween":   Fest("Halloween", "halloween", 7, 0, ("10-31",), "the spiders are moving in",
+                        "happy halloween — haunted by legacy code", "", "happy halloween · trick or treat"),
+    "valentine":   Fest("Valentine's Day", "hearts", 1, 0, ("02-14",), "git commit -m \"♥\"",
+                        "in a committed relationship (with git)", "", "happy valentine's day ♥"),
+}
+
+# Tamil-calendar dates (Murugan Calendar / Drik Panchang). None of these are in
+# Google's holiday feed, so they live here. Add a year when it runs out — years
+# beyond the table fall back to the ICS source listed in FESTIVALS, if any.
+TAMIL_DATES = {
+    "bhogi":         ["2026-01-14", "2027-01-14", "2028-01-14"],
+    "pongal":        ["2026-01-15", "2027-01-15", "2028-01-15"],
+    "mattu":         ["2026-01-16", "2027-01-16", "2028-01-16"],
+    "kaanum":        ["2026-01-17", "2027-01-17", "2028-01-17"],
+    "thaipusam":     ["2026-02-01", "2027-01-22", "2028-02-09"],
+    "masimagam":     ["2026-03-03", "2027-02-21", "2028-03-10"],
+    "panguni":       ["2026-04-01", "2027-03-22", "2028-04-08"],
+    "visakam":       ["2026-05-30", "2027-05-20", "2028-06-05"],
+    "aadi":          ["2026-08-03", "2027-08-03", "2028-08-03"],
+    "vinayagar":     ["2026-09-14", "2027-09-04", "2028-08-23"],
+    "ayudha":        ["2026-10-19", "2027-10-08", "2028-09-27"],
+    "vijayadashami": ["2026-10-20", "2027-10-09", "2028-09-28"],
+    "deepavali":     ["2026-11-08", "2027-10-28", "2028-10-17"],
+    "karthigai":     ["2026-11-24", "2027-12-11", "2028-12-01"],
 }
 
 # Used only if the holiday calendar can't be fetched.
 FALLBACK_DATES = {
-    "diwali/deepavali": ["2026-11-08", "2027-10-29"], "pongal": ["2026-01-14", "2027-01-15"],
     "holi": ["2026-03-04", "2027-03-22"], "onam": ["2026-08-26", "2027-09-12"],
-    "ganesh chaturthi": ["2026-09-14", "2027-09-04"], "dussehra": ["2026-10-20", "2027-10-09"],
     "ramzan id": ["2026-03-21", "2027-03-10"], "bakrid": ["2026-05-28", "2027-05-17"],
     "raksha bandhan": ["2026-08-28", "2027-08-17"], "janmashtami": ["2026-09-04", "2027-08-25"],
     "ugadi": ["2026-03-19", "2027-04-07"], "maha shivaratri": ["2026-02-15", "2027-03-06"],
@@ -109,23 +164,33 @@ def _holiday_dates() -> dict:
     return out
 
 
+def _dates(f: Fest, today: date, holidays: dict):
+    """All candidate dates for a festival; the first source to cover a year wins."""
+    by_year = {}
+    for src in f.when:
+        if re.fullmatch(r"\d\d-\d\d", src):
+            m, d = map(int, src.split("-"))
+            found = [date(y, m, d) for y in (today.year - 1, today.year, today.year + 1)]
+        elif src.startswith("tamil:"):
+            found = [date.fromisoformat(x) for x in TAMIL_DATES[src[6:]]]
+        else:
+            found = holidays.get(src, [])
+        for day in found:
+            by_year.setdefault(day.year, day)
+    return by_year.values()
+
+
 def current_festival(today: date, holidays: dict | None = None):
     """The festival whose window covers today, nearest date first; or None."""
     holidays = _holiday_dates() if holidays is None else holidays
     best = None
-    for key, (title, scene, lead, after, when, prep, greet) in FESTIVALS.items():
-        if re.fullmatch(r"\d\d-\d\d", when):
-            m, d = map(int, when.split("-"))
-            dates = [date(y, m, d) for y in (today.year - 1, today.year, today.year + 1)]
-        else:
-            dates = holidays.get(when, [])
-        for day in dates:
+    for key, f in FESTIVALS.items():
+        for day in _dates(f, today, holidays):
             left = (day - today).days
-            if -after <= left <= lead:
+            if -f.after <= left <= f.lead:
                 rank = (left < 0, abs(left))  # on/before the day beats the day after
                 if best is None or rank < best[0]:
-                    best = (rank, {"key": key, "title": title, "scene": scene,
-                                   "days": left, "prep": prep, "greet": greet})
+                    best = (rank, {"key": key, "days": left, **f._asdict()})
     return best[1] if best else None
 
 
@@ -136,6 +201,18 @@ def festival_status(f) -> str:
     if n < 0:
         return f"still celebrating {t}"
     return f"{t} {'tomorrow' if n == 1 else f'in {n} days'} · {f['prep']}"
+
+
+def festival_wish(f) -> str:
+    """The wish line under the name: in the festival's own language when it has one."""
+    return f"✦ {f['wish'] or f['wish_en']} ✦"
+
+
+def festival_wish_en(f):
+    """English wish for the terminal, or None when the wish line is English already."""
+    if not f["wish"]:
+        return None
+    return f["wish_en"] + (" — in advance" if f["days"] > 0 else "")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -200,6 +277,7 @@ CSS = """
 .fx-flap    { transform-box:fill-box; transform-origin:center; animation:fx-flap .28s ease-in-out infinite alternate }
 .fx-wave    { transform-box:fill-box; transform-origin:0 50%; animation:fx-wave 1.6s ease-in-out infinite alternate }
 .fx-flash   { animation:fx-flash 7s linear infinite }
+.fx-flow    { animation:fx-flow linear infinite }
 @keyframes fx-fall    { from { transform:translate(0,-40px) rotate(0) } to { transform:translate(var(--dx,0px),390px) rotate(var(--rot,0deg)) } }
 @keyframes fx-rise    { 0% { transform:translateY(0); opacity:0 } 15% { opacity:.9 } 100% { transform:translate(var(--dx,0px),-360px); opacity:0 } }
 @keyframes fx-drift   { from { transform:translateX(-300px) } to { transform:translateX(1500px) } }
@@ -212,6 +290,7 @@ CSS = """
 @keyframes fx-spin    { to { transform:rotate(360deg) } }
 @keyframes fx-flap    { from { transform:scaleY(1) } to { transform:scaleY(.25) } }
 @keyframes fx-wave    { from { transform:skewY(-4deg) scaleX(.97) } to { transform:skewY(4deg) scaleX(1) } }
+@keyframes fx-flow    { to { transform:translateX(200px) } }
 @keyframes fx-flash   { 0%,58%,61%,64%,100% { opacity:0 } 59%,62.5% { opacity:1 } }
 """
 
@@ -499,6 +578,77 @@ def flag(cx, top):
             f'</g></g>')
 
 
+def bonfire(rng, cx, base):
+    """Bhogi fire: crossed logs, layered flickering flames, embers."""
+    flames = "".join(
+        f'<g transform="translate({cx + dx} {base - 6}) scale({sc})"><g {_anim("fx-flicker", rng.uniform(.3, .6), rng.uniform(0, 1))}>'
+        f'<path d="M0 -26 C6 -17 7 -10 0 -3 C-7 -10 -6 -17 0 -26Z" fill="{fill}"/></g></g>'
+        for dx, sc, fill in ((-16, 2.0, "#E8590C"), (16, 2.1, "#E8590C"), (0, 3.4, "#F76707"),
+                             (-8, 2.4, "url(#fx-flame)"), (9, 2.6, "url(#fx-flame)"), (0, 1.8, "#FFF3BF"))
+    )
+    logs = (f'<rect x="{cx-38}" y="{base-10}" width="76" height="11" rx="5" fill="#5C3A1E" transform="rotate(-14 {cx} {base})"/>'
+            f'<rect x="{cx-38}" y="{base-10}" width="76" height="11" rx="5" fill="#6F4521" transform="rotate(14 {cx} {base})"/>')
+    return (f'<circle cx="{cx}" cy="{base-40}" r="110" fill="url(#fx-diyaGlow)" {_anim("fx-pulse", 1.1)}/>'
+            + flames + logs + rising(rng, 26, flake, ("#FFA94D", "#FFD43B", "#FF6B6B"), (2.5, 4.5), (cx - 30, cx + 30), (base - 30, base - 10)))
+
+
+def vel(rng, cx, top, bottom):
+    """Murugan's vel: a golden leaf-shaped spear with a glowing aura."""
+    rays = "".join(f'<line x1="0" y1="-48" x2="0" y2="-70" stroke="#FFD43B" stroke-opacity=".5" stroke-width="2" '
+                   f'stroke-linecap="round" transform="rotate({a})"/>' for a in range(0, 360, 20))
+    return (f'<circle cx="{cx}" cy="{top + 46}" r="90" fill="url(#fx-diyaGlow)" {_anim("fx-pulse", 1.8)}/>'
+            f'<g transform="translate({cx} {top + 46})"><g {_anim("fx-spin", 30)}>{rays}</g></g>'
+            f'<path d="M{cx} {top + 84} V{bottom}" stroke="url(#fx-gold)" stroke-width="6" stroke-linecap="round"/>'
+            f'<path d="M{cx} {top} C{cx + 30} {top + 40} {cx + 26} {top + 70} {cx} {top + 86} '
+            f'C{cx - 26} {top + 70} {cx - 30} {top + 40} {cx} {top}Z" fill="url(#fx-gold)" stroke="#FFF3BF" stroke-opacity=".6"/>'
+            f'<path d="M{cx} {top + 12} V{top + 76}" stroke="#B07D12" stroke-width="1.5"/>'
+            f'<rect x="{cx - 11}" y="{top + 86}" width="22" height="8" rx="3" fill="#E8590C"/>'
+            f'<circle cx="{cx}" cy="{top + 52}" r="5" fill="#E03131"/>')
+
+
+GOLD_DEFS = """<linearGradient id="fx-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF3BF"/><stop offset=".5" stop-color="#FCC419"/><stop offset="1" stop-color="#E67700"/></linearGradient>"""
+
+
+def water(rng, top):
+    """Flowing river/sea along the bottom: periodic waves scrolling sideways."""
+    def wave(y, amp, period=200):
+        d = f"M-{period} {y}" + "".join(f" q{period/4} {-amp} {period/2} 0 t{period/2} 0" for _ in range(9))
+        return d + f" V{H + 10} H-{period}Z"
+    layers = ""
+    for i, (dy, amp, c, op, dur) in enumerate(((0, 6, "#1C7ED6", .35, 9), (12, 5, "#339AF0", .28, 6), (24, 4, "#74C0FC", .2, 4))):
+        layers += f'<g class="fx-flow" style="animation-duration:{dur}s"><path d="{wave(top + dy, amp)}" fill="{c}" opacity="{op}"/></g>'
+    glints = stars(rng, 30, (0, W, top + 6, H - 6), "#D0EBFF")
+    return layers + glints
+
+
+def flower(x, y):
+    petals = "".join(f'<ellipse rx="4" ry="8" cy="-7" fill="{c}" transform="rotate({a})"/>'
+                     for a, c in zip(range(0, 360, 45), ("#FF9F1C", "#FFD60A") * 4))
+    return f'<g transform="translate({x} {y})">{petals}<circle r="4" fill="#E03131"/></g>'
+
+
+def bell(rng, x, length):
+    return (f'<g {_anim("fx-sway", rng.uniform(1.4, 2.2), rng.uniform(0, 2), "--a:-10deg")}>'
+            f'<path d="M{x} 0 V{length}" stroke="#FCC419" stroke-opacity=".6" stroke-width="1.5"/>'
+            f'<path d="M{x-16} {length+34} q0 -30 16 -32 q16 2 16 32z" fill="url(#fx-gold)"/>'
+            f'<rect x="{x-19}" y="{length+32}" width="38" height="5" rx="2.5" fill="#E67700"/>'
+            f'<circle cx="{x}" cy="{length+41}" r="4" fill="#B07D12"/>'
+            + "".join(f'<circle cx="{x + dx}" cy="{length + 50 + i*9}" r="3" fill="#F8F9FA"/>'
+                      for i, dx in enumerate((-4, 4, -2, 3))) + '</g>')
+
+
+def hill_deepam(rng, cx, peak, base):
+    """Tiruvannamalai with the Maha Deepam burning on top and lamps up the slope."""
+    slope = "".join(f'<circle cx="{cx + side * t * 72:.0f}" cy="{peak + t * (base - peak):.0f}" r="2.2" fill="#FFD43B" '
+                    f'{_anim("fx-twinkle", rng.uniform(1, 2.2), rng.uniform(0, 2))}/>'
+                    for side in (-1, 1) for t in (.2, .35, .5, .65, .8, .95))
+    return (f'<path d="M{cx-120} {base} C{cx-70} {base-40} {cx-30} {peak+20} {cx} {peak} '
+            f'C{cx+30} {peak+20} {cx+70} {base-40} {cx+120} {base}Z" fill="#1C2128" stroke="#373E47"/>'
+            f'<circle cx="{cx}" cy="{peak-30}" r="80" fill="url(#fx-diyaGlow)" {_anim("fx-pulse", 1.3)}/>'
+            f'<g transform="translate({cx} {peak + 2}) scale(2.6)"><g {_anim("fx-flicker", .45)}>'
+            f'<path d="M0 -26 C6 -17 7 -10 0 -3 C-7 -10 -6 -17 0 -26Z" fill="url(#fx-flame)"/></g></g>{slope}')
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Scenes
 # ═════════════════════════════════════════════════════════════════════════════
@@ -584,6 +734,31 @@ def _festival_scene(name, rng):
                  + f'<g transform="translate({COL} 0)"><g class="fx-drop"><g class="fx-swing">{spider(1.35)}</g></g></g>'
                  # A smaller one keeps bobbing at the right edge, next to the terminal.
                  + f'<g transform="translate(1172 112)"><g class="fx-bob" style="animation-duration:1.7s">{spider(.75)}</g></g>')
+    elif name == "bhogi":
+        defs = DIYA_DEFS
+        back = stars(rng, 50, (0, W, 0, 160), "#FFE8A3") + bonfire(rng, COL + 10, 300)
+        front = toran(rng)
+    elif name == "deepam":
+        defs = DIYA_DEFS
+        back = stars(rng, 80, (0, W, 0, 200), "#FFE8A3") + hill_deepam(rng, COL, 120, 296)
+        front = diyas(rng, strip) + diyas(rng, [1172], 330)
+    elif name == "vel":
+        defs = DIYA_DEFS + GOLD_DEFS
+        back = vel(rng, COL, 40, 290) + falling(rng, 40, petal, ("#FFD43B", "#FF922B", "#F76707", "#FFF3BF"))
+        front = toran(rng)
+    elif name == "river":
+        defs = DIYA_DEFS
+        back = stars(rng, 40, (0, W, 0, 150), "#D0EBFF")
+        floats = ""
+        for i, x in enumerate(range(80, 700, 90)):  # lamps and flowers drifting on the water
+            item = diyas(rng, [0], 314) if i % 2 else flower(0, 318)
+            floats += (f'<g transform="translate({x} 0)"><g {_anim("fx-bob", rng.uniform(1.4, 2.4), rng.uniform(0, 2))}>'
+                       f'{item}</g></g>')
+        front = water(rng, 300) + floats
+    elif name == "wedding":
+        defs = GOLD_DEFS
+        back = falling(rng, 50, petal, ("#FFFFFF", "#FFF0F6", "#FFD43B", "#F783AC", "#FF922B"))
+        front = toran(rng) + bell(rng, 590, 40) + bell(rng, 670, 80) + bell(rng, 1172, 60)
     elif name == "hearts":
         back = rising(rng, 40, heart, ("#FF6B81", "#F03E3E", "#F783AC", "#FFC9D6"), (5, 9))
     elif name == "night":
