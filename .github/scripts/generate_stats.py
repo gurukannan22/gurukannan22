@@ -2,11 +2,13 @@
 """
 generate_stats.py  —  GitHub profile SVG generator
 ═══════════════════════════════════════════════════
-Renders four self-hosted, auto-updating SVG cards:
-  • assets/banner.svg  — hero banner with a live status chip + terminal
+Renders five self-hosted, auto-updating SVG cards:
+  • assets/banner.svg  — hero banner: live status chip, terminal, and a festival
+                         or live-weather scene (see scenes.py)
   • assets/stats.svg   — 12-month contribution activity + full heatmap
   • assets/langs.svg   — language breakdown across owned repos
   • assets/recent.svg  — most recently pushed repositories
+  • assets/footer.svg  — the secrets folder + egg hunt
 
 GitHub Actions runs this every 30 minutes and commits the results.
 No third-party dependencies: only the standard library.
@@ -18,6 +20,8 @@ No third-party dependencies: only the standard library.
 import json, math, os, random, sys, urllib.request
 from datetime import date, datetime, timedelta, timezone
 from html import escape
+
+import scenes
 
 USERNAME = os.environ.get("GITHUB_USERNAME", "gurukannan22")
 TOKEN    = os.environ.get("GITHUB_TOKEN", "")
@@ -234,18 +238,13 @@ def text_w(s, size, mono=False):
 
 
 def status_for(now: datetime):
-    """The banner's status chip. Changes with the hour, the weekday and a few holidays."""
+    """The banner's status chip on non-festival days. Changes with the hour and weekday."""
     md, h, wd = (now.month, now.day), now.hour, now.weekday()
     yday = now.timetuple().tm_yday
     special = {
-        (1, 1):   "new year, new bugs",
-        (2, 14):  "in a committed relationship (with git)",
         (3, 14):  "π day · 3.14159 commits",
         (4, 1):   "all tests passing (april fools)",
         (5, 4):   "may the --force be with you",
-        (10, 31): "haunted by legacy code",
-        (12, 25): "merging gifts into main",
-        (12, 31): "git commit -m \"wrapping up the year\"",
     }
     if yday == 256:  # Programmer's Day: the 256th day of the year
         return "programmer's day · 0x100", P["amber"]
@@ -266,31 +265,6 @@ def status_for(now: datetime):
     if h < 22:
         return "reviewing PRs & teaching", P["green"]
     return "one more commit, then sleep", P["green"]
-
-
-def _seasonal(now: datetime, W, H):
-    """Small decorations for certain times of year."""
-    if now.month == 10 and now.day >= 20:
-        # A spider drops in from the top edge now and then.
-        legs = "".join(
-            f'<path d="M0 0 q{dx*9} {dy} {dx*14} {dy+6}" stroke="{P["muted"]}" stroke-width="1.2" fill="none"/>'
-            for dx in (-1, 1) for dy in (-5, -1, 3, 7)
-        )
-        return (
-            f'<g class="spider"><line x1="560" y1="0" x2="560" y2="60" stroke="{P["faint"]}" stroke-width="1"/>'
-            f'<g transform="translate(560 66)">{legs}<circle r="6" fill="{P["muted"]}"/>'
-            f'<circle cx="-2" cy="-1" r="1.2" fill="{P["pink"]}"/><circle cx="2" cy="-1" r="1.2" fill="{P["pink"]}"/></g></g>'
-        )
-    if now.month == 12:
-        rng = random.Random(now.day)
-        flakes = "".join(
-            f'<circle cx="{rng.randint(0, W)}" cy="-6" r="{rng.uniform(1, 2.4):.1f}" fill="#fff" opacity=".6">'
-            f'<animate attributeName="cy" from="-6" to="{H + 6}" dur="{rng.uniform(6, 13):.1f}s" '
-            f'begin="{rng.uniform(0, 8):.1f}s" repeatCount="indefinite"/></circle>'
-            for _ in range(45)
-        )
-        return f"<g>{flakes}</g>"
-    return ""
 
 
 INVADER = [
@@ -327,11 +301,13 @@ def _frame(W, H, cid):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BANNER  (1200 × 330)
+# BANNER  (1200 × 350)
 # ═════════════════════════════════════════════════════════════════════════════
-def build_banner_svg(d: dict, now: datetime) -> str:
-    W, H = 1200, 330
-    status, s_col = status_for(now)
+def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
+    W, H = scenes.W, scenes.H
+    status, s_col = (scenes.festival_status(festival), P["amber"]) if festival else status_for(now)
+    scene = scenes.render(now, festival, wx)
+    weather = escape(scenes.weather_label(wx)) if wx else ""
     chip_w = text_w(status, 13, mono=True) + 46
     april = (now.month, now.day) == (4, 1)
 
@@ -375,15 +351,15 @@ def build_banner_svg(d: dict, now: datetime) -> str:
     .cur  {{ animation:blink 1.1s step-end infinite }}
     .psst {{ opacity:0; animation:psst 23s 6s linear infinite }}
     .inv  {{ animation:fly 41s 9s linear infinite; transform:translateX(-60px) }}
-    .spider {{ animation:drop 14s 3s ease-in-out infinite; transform:translateY(-90px) }}
     .pulse {{ animation:pulse 1.8s ease-in-out infinite }}
     @keyframes blink {{ 50% {{ opacity:0 }} }}
     @keyframes psst  {{ 0%,91% {{ opacity:0 }} 92%,98% {{ opacity:.9 }} 100% {{ opacity:0 }} }}
     @keyframes fly   {{ 0% {{ transform:translateX(-60px) }} 14%,100% {{ transform:translateX({W+60}px) }} }}
-    @keyframes drop  {{ 0%,60%,100% {{ transform:translateY(-90px) }} 70%,88% {{ transform:translateY(0) }} }}
     @keyframes pulse {{ 0%,100% {{ opacity:1 }} 50% {{ opacity:.35 }} }}
+    {scene["css"]}
     @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important }} }}
   </style>
+  {scene["defs"]}
   <radialGradient id="glow" cx="12%" cy="0%" r="70%">
     <stop offset="0%" stop-color="{P["blue"]}" stop-opacity=".16"/>
     <stop offset="100%" stop-color="{P["blue"]}" stop-opacity="0"/>
@@ -400,7 +376,7 @@ def build_banner_svg(d: dict, now: datetime) -> str:
 <g clip-path="url(#bc)">
   <rect width="{W}" height="{H}" fill="url(#grid)"/>
   <rect width="{W}" height="{H}" fill="url(#glow)"/>
-  {_seasonal(now, W, H)}
+  {scene["back"]}
   <g class="inv" opacity=".85"><g transform="translate(0 14)">{_invader()}</g></g>
 </g>
 
@@ -429,12 +405,16 @@ def build_banner_svg(d: dict, now: datetime) -> str:
   <circle cx="{term_x+40}" cy="{term_y+19}" r="5.5" fill="#FEBC2E"/>
   <circle cx="{term_x+58}" cy="{term_y+19}" r="5.5" fill="#28C840"/>
   <text x="{term_x+term_w/2}" y="{term_y+23.5}" text-anchor="middle" class="mono" font-size="12" fill="{P["faint"]}">guru@github: ~</text>
+  <text x="{term_x+term_w-18}" y="{term_y+23.5}" text-anchor="end" class="mono" font-size="12" fill="{P["muted"]}">{weather}</text>
 </g>
 {term}
 
+<!-- festival / weather props that sit in front -->
+<g clip-path="url(#bc)">{scene["front"]}</g>
+
 <!-- the fine print -->
-<text x="64" y="{H-14}" class="mono" font-size="8" fill="{P["faint"]}" opacity=".55">{binary}</text>
-<text x="{W-56}" y="{H-14}" text-anchor="end" class="mono" font-size="9" fill="{P["faint"]}" opacity=".55">{konami}</text>
+<text x="64" y="{H-12}" class="mono" font-size="8" fill="{P["faint"]}" opacity=".55">{binary}</text>
+<text x="{W-56}" y="{H-12}" text-anchor="end" class="mono" font-size="9" fill="{P["faint"]}" opacity=".55">{konami}</text>
 """)
 
 
@@ -606,8 +586,8 @@ HINTS = [
     "Watch the top of the banner for a minute.",
     "The faint 1s and 0s under the banner say something.",
     "A famous cheat code hides in the banner's corner.",
-    "My status chip changes with the hour. Try 3 a.m.",
-    "Visit on Halloween, April 1st or in December.",
+    "No festival today? Check the sky over the terminal.",
+    "Come back near Diwali, Pongal, Holi or Eid.",
     "The activity card has a new fortune every day.",
     "You're looking at it: my secrets folder.",
     "Free source code is never free. Click this card.",
@@ -670,13 +650,17 @@ def build_footer_svg(now: datetime) -> str:
 def main():
     print(f"[INFO] Fetching @{USERNAME} …")
     data = fetch_data()
-    now = datetime.now(IST)
+    # PROFILE_DATE=2026-11-05T21:00 previews a given moment (festivals, chips).
+    now = (datetime.fromisoformat(os.environ["PROFILE_DATE"]).replace(tzinfo=IST)
+           if os.environ.get("PROFILE_DATE") else datetime.now(IST))
+    festival, wx = scenes.current_festival(now.date()), scenes.fetch_weather()
+    print(f"[INFO] festival={festival and festival['key']} weather={wx and wx['desc']}")
     print(f"[INFO] total={data['total']} streak={data['cur_streak']}d "
           f"active={data['active']}/{data['n_days']} langs={len(data['langs'])}")
 
     os.makedirs(OUT_DIR, exist_ok=True)
     outputs = {
-        "banner.svg": build_banner_svg(data, now),
+        "banner.svg": build_banner_svg(data, now, festival, wx),
         "stats.svg":  build_stats_svg(data, now),
         "langs.svg":  build_langs_svg(data),
         "recent.svg": build_recent_svg(data),

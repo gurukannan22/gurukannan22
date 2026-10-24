@@ -43,6 +43,10 @@ jobs:
         env:
           GITHUB_TOKEN:    ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USERNAME: gurukannan22
+          # City for the banner's live weather scene (shown when no festival is near)
+          WEATHER_CITY: Chennai
+          WEATHER_LAT: "13.0827"
+          WEATHER_LON: "80.2707"
         run: python .github/scripts/generate_stats.py
 
       - name: Commit & push generated SVGs
