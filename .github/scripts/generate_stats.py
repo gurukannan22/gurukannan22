@@ -17,11 +17,12 @@ No third-party dependencies: only the standard library.
  If you're reading this, you're already on the hunt. 🥚)
 """
 
-import json, math, os, random, sys, urllib.request
+import json, os, random, sys, urllib.request
 from datetime import date, datetime, timedelta, timezone
 from html import escape
 
-import scenes
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # sibling module, however we're launched
+import scenes  # noqa: E402
 
 USERNAME = os.environ.get("GITHUB_USERNAME", "gurukannan22")
 TOKEN    = os.environ.get("GITHUB_TOKEN", "")

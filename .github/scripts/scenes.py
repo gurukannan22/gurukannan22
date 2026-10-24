@@ -18,7 +18,7 @@ y 46–284; the column x 570–690 and the strip y 296–334 are free for props.
 """
 
 import json, math, os, random, re, sys, urllib.request
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import NamedTuple
 
 W, H = 1200, 350
