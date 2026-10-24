@@ -181,38 +181,53 @@ def _dates(f: Fest, today: date, holidays: dict):
 
 
 def current_festival(today: date, holidays: dict | None = None):
-    """The festival whose window covers today, nearest date first; or None."""
+    """The festival whose window covers today, nearest date first; or None.
+
+    Festivals that fall on that same date ride along in "also", so a shared
+    day (Holi + Panguni Uthiram, say) shows every wish, not just one.
+    """
     holidays = _holiday_dates() if holidays is None else holidays
-    best = None
+    hits = []
     for key, f in FESTIVALS.items():
         for day in _dates(f, today, holidays):
             left = (day - today).days
             if -f.after <= left <= f.lead:
                 rank = (left < 0, abs(left))  # on/before the day beats the day after
-                if best is None or rank < best[0]:
-                    best = (rank, {"key": key, "days": left, **f._asdict()})
-    return best[1] if best else None
+                hits.append((rank, day, {"key": key, "days": left, **f._asdict()}))
+    if not hits:
+        return None
+    best_rank = min(h[0] for h in hits)
+    best_day = next(h[1] for h in hits if h[0] == best_rank)  # first in FESTIVALS order
+    same = [h[2] for h in hits if h[1] == best_day]
+    return {**same[0], "also": same[1:]}
+
+
+def _all(f):
+    return [f, *f.get("also", [])]
 
 
 def festival_status(f) -> str:
-    n, t = f["days"], f["title"].lower()
+    n = f["days"]
+    t = " + ".join(x["title"].lower() for x in _all(f))
     if n == 0:
-        return f["greet"]
+        return f"{['', '', 'double', 'triple'][min(len(_all(f)), 3)]} celebration · {t}" if f.get("also") else f["greet"]
     if n < 0:
         return f"still celebrating {t}"
-    return f"{t} {'tomorrow' if n == 1 else f'in {n} days'} · {f['prep']}"
+    when = "tomorrow" if n == 1 else f"in {n} days"
+    return f"{t} {when}" if f.get("also") else f"{t} {when} · {f['prep']}"
 
 
-def festival_wish(f) -> str:
-    """The wish line under the name: in the festival's own language when it has one."""
-    return f"✦ {f['wish'] or f['wish_en']} ✦"
+def festival_wishes(f) -> list:
+    """Wish lines under the name, one per festival: in its own language when it has one."""
+    return [f"✦ {x['wish'] or x['wish_en']} ✦" for x in _all(f)]
 
 
 def festival_wish_en(f):
     """English wish for the terminal, or None when the wish line is English already."""
-    if not f["wish"]:
+    if not f.get("also") and not f["wish"]:
         return None
-    return f["wish_en"] + (" — in advance" if f["days"] > 0 else "")
+    text = " & ".join(x["wish_en"] for x in _all(f))
+    return text + (" — in advance" if f["days"] > 0 and len(text) < 32 else "")
 
 
 # ═════════════════════════════════════════════════════════════════════════════

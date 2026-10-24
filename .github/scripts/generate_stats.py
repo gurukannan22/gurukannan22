@@ -311,7 +311,7 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
     status, s_col = (scenes.festival_status(festival), P["amber"]) if festival else status_for(now)
     scene = scenes.render(now, festival, wx)
     weather = escape(scenes.weather_label(wx)) if wx else ""
-    wish    = scenes.festival_wish(festival) if festival else None
+    wishes  = scenes.festival_wishes(festival)[:2] if festival else []
     wish_en = scenes.festival_wish_en(festival) if festival else None
     chip_w = text_w(status, 13, mono=True) + 46
     april = (now.month, now.day) == (4, 1)
@@ -400,7 +400,9 @@ def build_banner_svg(d: dict, now: datetime, festival, wx) -> str:
 </g>
 <g>
   <text x="64" y="204" font-size="22" font-weight="500" fill="{P["soft"]}">Backend engineer · Java · Spring Boot · Kafka</text>
-  {f'<text x="64" y="237" font-size="18" font-weight="600" fill="url(#wishG)" font-family="{WISH_FONT}">{escape(wish)}</text>' if wish else
+  {"".join(f'<text x="64" y="{y}" font-size="{18 if len(wishes) == 1 else 16}" font-weight="600" fill="url(#wishG)" '
+           f'font-family="{WISH_FONT}">{escape(w)}</text>'
+           for w, y in zip(wishes, (237,) if len(wishes) == 1 else (228, 250))) if wishes else
    f'<text x="64" y="236" font-size="16" fill="{P["muted"]}">Building production systems by day, teaching fundamentals by night.</text>'}
 </g>
 <g>
