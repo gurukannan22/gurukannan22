@@ -102,7 +102,7 @@
   <circle cx="744" cy="65" r="5.5" fill="#FEBC2E"/>
   <circle cx="762" cy="65" r="5.5" fill="#28C840"/>
   <text x="924.0" y="69.5" text-anchor="middle" class="mono" font-size="12" fill="#484F58">guru@github: ~</text>
-  <text x="1126" y="69.5" text-anchor="end" class="mono" font-size="12" fill="#8B949E">☾ 24°C · chennai</text>
+  <text x="1126" y="69.5" text-anchor="end" class="mono" font-size="12" fill="#8B949E">☀ 31°C · chennai</text>
 </g>
 <text x="728" y="120" class="mono t"><tspan fill="#3FB950">❯</tspan> <tspan fill="#E6EDF3">whoami</tspan></text><text x="728" y="145" class="mono t"><tspan fill="#8B949E">guru — backend engineer &amp; tech educator</tspan></text><text x="728" y="170" class="mono t"><tspan fill="#3FB950">❯</tspan> <tspan fill="#E6EDF3">cat ~/.stack</tspan></text><text x="728" y="195" class="mono t"><tspan fill="#8B949E">java · spring boot · kafka · react · aws</tspan></text><text x="728" y="220" class="mono t"><tspan fill="#3FB950">❯</tspan> <tspan fill="#E6EDF3">git log -1 --oneline</tspan></text><text x="728" y="245" class="mono t"><tspan fill="#F0B429">c0ffee5</tspan> <tspan fill="#8B949E">feat: 623 contributions in 12 months</tspan></text><text x="728" y="270" class="mono t"><tspan fill="#3FB950">❯</tspan> <tspan class="cur" fill="#58A6FF">▍</tspan></text><text x="754" y="270" class="mono psst" fill="#F0B429" font-size="13">psst… try hovering the images</text>
 
